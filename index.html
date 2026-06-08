@@ -812,7 +812,7 @@
   <button class="ghost btn-small" id="btnMemo" type="button">Mémo</button>
   <button class="ghost btn-small" id="btnInfoSup" type="button">Info sup</button>
   <button class="ghost btn-small" id="btnMode" type="button">Mode 1 par 1</button>
-  <div class="pill">v2.34</div>
+  <div class="pill">v2.35</div>
 </div>
 </div>
 <div class="card">
@@ -1933,7 +1933,8 @@
                 const rawNotes = item.texte_notes_case || item.texte_notes || rawText;
                 const notesOui = memoEscapeHtml(item.texte_notes_oui || `${rawNotes} : Oui`);
                 const notesNon = memoEscapeHtml(item.texte_notes_non || `${rawNotes} : Non`);
-                const badge = exportNotes ? '<span class="memo-export-badge">notes</span>' : '';
+                // Info sup : on conserve la logique d'export dans les notes, mais sans afficher de badge visuel.
+                const badge = '';
                 const cat = '';
                 const dataPrefix = isInfoSup ? "info" : "memo";
 

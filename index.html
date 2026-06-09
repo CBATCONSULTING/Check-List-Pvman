@@ -180,6 +180,7 @@
 
         /* ✅ Sélecteur largeur (compact) */
         .width-wrap{ display:inline-flex; }
+        .width-wrap.width-hidden{ display:none !important; }
         
 
         @keyframes widthPulse {
@@ -812,7 +813,7 @@
   <button class="ghost btn-small" id="btnMemo" type="button">Mémo</button>
   <button class="ghost btn-small" id="btnInfoSup" type="button">Info sup</button>
   <button class="ghost btn-small" id="btnMode" type="button">Mode 1 par 1</button>
-  <div class="pill">v2.36</div>
+  <div class="pill">v2.37</div>
 </div>
 </div>
 <div class="card">
@@ -1807,6 +1808,19 @@
     "id": "info_sup_101",
     "ordre": 101,
     "bouton": "info_sup",
+    "categorie": "Électricité",
+    "texte": "La tableau est-il repéré ?",
+    "type_reponse": "oui_non",
+    "afficher_notes": "oui",
+    "texte_notes_case": "",
+    "texte_notes_oui": "",
+    "texte_notes_non": "",
+    "actif": "oui"
+  },
+  {
+    "id": "info_sup_102",
+    "ordre": 102,
+    "bouton": "info_sup",
     "categorie": "Électroménager",
     "texte": "Inverser sens ouverture porte frigo",
     "type_reponse": "case",
@@ -1817,8 +1831,8 @@
     "actif": "oui"
   },
   {
-    "id": "info_sup_102",
-    "ordre": 102,
+    "id": "info_sup_103",
+    "ordre": 103,
     "bouton": "info_sup",
     "categorie": "Pose",
     "texte": "Aide pose nécessaire ?",
@@ -1830,8 +1844,8 @@
     "actif": "oui"
   },
   {
-    "id": "info_sup_103",
-    "ordre": 103,
+    "id": "info_sup_104",
+    "ordre": 104,
     "bouton": "info_sup",
     "categorie": "Mesures",
     "texte": "Mesures à récupérer ?",
@@ -2582,6 +2596,9 @@ function injectWidthSelectors(){
     if (appliance === "Lave-linge pose libre") {
       sel.setAttribute("data-width-require-listing", "ll_libre_listing");
     }
+    if (appliance === "Hotte décoration") {
+      sel.setAttribute("data-width-require-defnon", "1");
+    }
     sel.innerHTML = `
       <option value="" selected disabled>Largeur</option>
       ${widths.map(w => `<option value="${w}">${w} cm</option>`).join("")}
@@ -2595,6 +2612,33 @@ function injectWidthSelectors(){
       updateWizardNavState();
     });
   });
+}
+
+function widthSelectShouldBeVisible(sel){
+    if (!sel) return false;
+    if (sel.getAttribute("data-width-require-defnon") === "1") {
+        const row = sel.closest(".row");
+        if (!row) return false;
+        const pasde = row.querySelector('input[type="radio"][value="pasde"]:checked');
+        if (pasde) return false;
+        const defm = !!row.querySelector('input[type="checkbox"][data-defmag="1"]')?.checked;
+        const non = !!row.querySelector('input[type="checkbox"][data-nonikea="1"]')?.checked;
+        return defm || non;
+    }
+    return true;
+}
+
+function syncWidthSelectAvailability(){
+    document.querySelectorAll('select.width-select').forEach(sel => {
+        const wrap = sel.closest(".width-wrap");
+        const visible = widthSelectShouldBeVisible(sel);
+        if (wrap) wrap.classList.toggle("width-hidden", !visible);
+        if (!visible) {
+            sel.value = "";
+            sel.classList.remove("attention");
+            if (wrap) wrap.classList.remove("attention");
+        }
+    });
 }
 
 const CHIFFRAGE_SELECTORS = 'select[data-plomberie-evier="1"], select[data-decoupes-plan="1"], select[data-protection-plaque="1"], select[data-protection-plaquehotte="1"], select[data-protection-piano="1"], select[data-pc-hotte="1"], select[data-protection-four="1"], select[data-pc-microondes="1"], select[data-protection-lv="1"], select[data-pc-frigo="1"], select[data-pc-congel="1"], select[data-protection-ll="1"], select[data-protection-sl="1"], select[data-pc-luminaires="1"]';
@@ -3078,6 +3122,7 @@ function getLuminairesPcExportLine(){
             syncGazChiffrageOptions();
             syncGeneralConditionalRows();
             syncChiffrageSelectAvailability();
+            syncWidthSelectAvailability();
             syncPlumbingSelectVisualState();
             syncTechnicalSelectVisualState();
         injectExtraInputs();
@@ -3983,6 +4028,7 @@ function rowIsPresentForWidth(row){
 
 function widthSelectIsRequired(sel){
     if (!sel) return false;
+    if (!widthSelectShouldBeVisible(sel)) return false;
 
     // Cas spécifique : le lave-linge pose libre ne demande la largeur
     // que si son bouton "Listing" est coché.
@@ -4427,6 +4473,7 @@ applyAlternatingRows();
         injectMitigeurHeightInputs();
         syncMitigeurHeightInputs();
         injectWidthSelectors();
+        syncWidthSelectAvailability();
         applyTwoLineLayout();
         updatePlaqueHotteConstraint();
         syncTvaReducedLinkBox();

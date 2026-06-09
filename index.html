@@ -546,6 +546,7 @@
         
 
         .opt-defmag{min-width: 128px;}
+        .opt-depose-client{min-width: 260px;}
         .extra-line{
             width: 100%;
             margin-top: 8px;
@@ -813,7 +814,7 @@
   <button class="ghost btn-small" id="btnMemo" type="button">Mémo</button>
   <button class="ghost btn-small" id="btnInfoSup" type="button">Info sup</button>
   <button class="ghost btn-small" id="btnMode" type="button">Mode 1 par 1</button>
-  <div class="pill">v2.37</div>
+  <div class="pill">v2.38</div>
 </div>
 </div>
 <div class="card">
@@ -897,6 +898,7 @@
   <div class="options compact-gap general-choice-group">
     <label><input name="info_travaux_depose" type="radio" value="oui"/><span class="opt compact">Oui</span></label>
     <label><input name="info_travaux_depose" type="radio" value="non"/><span class="opt compact">Non</span></label>
+    <label><input name="info_depose_charge_client" type="checkbox" value="oui"/><span class="opt compact opt-depose-client">Dépose/enlèvement à charge client</span></label>
   </div>
 </div>
 
@@ -1536,7 +1538,7 @@
     "ordre": 1,
     "bouton": "memo",
     "categorie": "Photos",
-    "texte": "Photos pièce de gauche à droite + vue globale",
+    "texte": "Photos pièce de gauche à droite + vue globale + tableau de répartition",
     "type_reponse": "case",
     "afficher_notes": "non",
     "texte_notes_case": "",
@@ -1548,8 +1550,8 @@
     "id": "memo_002",
     "ordre": 2,
     "bouton": "memo",
-    "categorie": "Photos",
-    "texte": "Photos tableau de répartition (proche + éloignée)",
+    "categorie": "Électricité",
+    "texte": "Mesure valeur terre",
     "type_reponse": "case",
     "afficher_notes": "non",
     "texte_notes_case": "",
@@ -1600,7 +1602,7 @@
     "id": "memo_006",
     "ordre": 6,
     "bouton": "memo",
-    "categorie": "Pose",
+    "categorie": "Finitions",
     "texte": "Plinthes ok ?",
     "type_reponse": "case",
     "afficher_notes": "non",
@@ -1613,7 +1615,7 @@
     "id": "memo_007",
     "ordre": 7,
     "bouton": "memo",
-    "categorie": "Pose",
+    "categorie": "Sols",
     "texte": "Sols terminés ?",
     "type_reponse": "case",
     "afficher_notes": "non",
@@ -1626,7 +1628,7 @@
     "id": "memo_008",
     "ordre": 8,
     "bouton": "memo",
-    "categorie": "Pose",
+    "categorie": "Technique",
     "texte": "Vide sanitaire nécessaire ?",
     "type_reponse": "case",
     "afficher_notes": "non",
@@ -1639,8 +1641,8 @@
     "id": "memo_009",
     "ordre": 9,
     "bouton": "memo",
-    "categorie": "Chauffage",
-    "texte": "Les radiateurs restent-ils accessibles ?",
+    "categorie": "Pose",
+    "texte": "Aide pose nécessaires ?",
     "type_reponse": "case",
     "afficher_notes": "non",
     "texte_notes_case": "",
@@ -1652,8 +1654,8 @@
     "id": "memo_010",
     "ordre": 10,
     "bouton": "memo",
-    "categorie": "Structure",
-    "texte": "Les caissons volets roulants ne gênent pas les meubles hauts ?",
+    "categorie": "Mesures",
+    "texte": "Mesures à récupérer ?",
     "type_reponse": "case",
     "afficher_notes": "non",
     "texte_notes_case": "",
@@ -1665,8 +1667,8 @@
     "id": "memo_011",
     "ordre": 11,
     "bouton": "memo",
-    "categorie": "Coffrage",
-    "texte": "Si coffrage, démontage ok ?",
+    "categorie": "Chauffage",
+    "texte": "Si radiateurs, restent accessibles ?",
     "type_reponse": "case",
     "afficher_notes": "non",
     "texte_notes_case": "",
@@ -1678,8 +1680,8 @@
     "id": "memo_012",
     "ordre": 12,
     "bouton": "memo",
-    "categorie": "Plomberie",
-    "texte": "Accès vannes et robinets ok ?",
+    "categorie": "Coffrage",
+    "texte": "Si coffrage, démontage ok ?",
     "type_reponse": "case",
     "afficher_notes": "non",
     "texte_notes_case": "",
@@ -1691,8 +1693,8 @@
     "id": "memo_013",
     "ordre": 13,
     "bouton": "memo",
-    "categorie": "Ventilation",
-    "texte": "Ventilations dégagées ?",
+    "categorie": "Plomberie",
+    "texte": "Accès vannes et robinets ok ?",
     "type_reponse": "case",
     "afficher_notes": "non",
     "texte_notes_case": "",
@@ -1704,8 +1706,8 @@
     "id": "memo_014",
     "ordre": 14,
     "bouton": "memo",
-    "categorie": "Électroménager",
-    "texte": "Vérifier ouverture frigo ( ! Épaisseur porte)",
+    "categorie": "Ventilation",
+    "texte": "Ventilations dégagées ?",
     "type_reponse": "case",
     "afficher_notes": "non",
     "texte_notes_case": "",
@@ -1718,7 +1720,7 @@
     "ordre": 15,
     "bouton": "memo",
     "categorie": "Électroménager",
-    "texte": "Les électroménagers sont-ils démontables en cas de SAV ?",
+    "texte": "Ouverture frigo ok ?",
     "type_reponse": "case",
     "afficher_notes": "non",
     "texte_notes_case": "",
@@ -1727,134 +1729,30 @@
     "actif": "oui"
   },
   {
-    "id": "memo_016",
-    "ordre": 16,
-    "bouton": "memo",
-    "categorie": "Extrabat",
-    "texte": "Faire signer le client",
-    "type_reponse": "case",
-    "afficher_notes": "non",
-    "texte_notes_case": "",
-    "texte_notes_oui": "",
-    "texte_notes_non": "",
-    "actif": "oui"
-  },
-  {
-    "id": "memo_017",
-    "ordre": 17,
-    "bouton": "memo",
-    "categorie": "Extrabat",
-    "texte": "Mettre à jour l'intervention",
-    "type_reponse": "case",
-    "afficher_notes": "non",
-    "texte_notes_case": "",
-    "texte_notes_oui": "",
-    "texte_notes_non": "",
-    "actif": "oui"
-  },
-  {
-    "id": "memo_018",
-    "ordre": 18,
-    "bouton": "memo",
-    "categorie": "Plan",
-    "texte": "Insérer les tampons dans le PDF",
-    "type_reponse": "case",
-    "afficher_notes": "non",
-    "texte_notes_case": "",
-    "texte_notes_oui": "",
-    "texte_notes_non": "",
-    "actif": "oui"
-  },
-  {
-    "id": "memo_019",
-    "ordre": 19,
-    "bouton": "memo",
-    "categorie": "Extrabat",
-    "texte": "NE PAS envoyer le dossier si attestation TVA pas signée",
-    "type_reponse": "case",
-    "afficher_notes": "non",
-    "texte_notes_case": "",
-    "texte_notes_oui": "",
-    "texte_notes_non": "",
-    "actif": "oui"
-  },
-  {
-    "id": "memo_020",
-    "ordre": 20,
-    "bouton": "memo",
-    "categorie": "Centiro",
-    "texte": "Mettre à jour Centiro (statuts + documents)",
-    "type_reponse": "case",
-    "afficher_notes": "non",
-    "texte_notes_case": "",
-    "texte_notes_oui": "",
-    "texte_notes_non": "",
-    "actif": "oui"
-  },
-  {
-    "id": "info_sup_100",
+    "id": "infosup_ex_case",
     "ordre": 100,
     "bouton": "info_sup",
-    "categorie": "Électricité",
-    "texte": "Mesure valeur terre bonne",
-    "type_reponse": "oui_non",
-    "afficher_notes": "oui",
-    "texte_notes_case": "",
-    "texte_notes_oui": "Mesure valeur terre OK",
-    "texte_notes_non": "Mesure valeur terre PAS OK",
-    "actif": "oui"
-  },
-  {
-    "id": "info_sup_101",
-    "ordre": 101,
-    "bouton": "info_sup",
-    "categorie": "Électricité",
-    "texte": "La tableau est-il repéré ?",
-    "type_reponse": "oui_non",
-    "afficher_notes": "oui",
-    "texte_notes_case": "",
-    "texte_notes_oui": "",
-    "texte_notes_non": "",
-    "actif": "oui"
-  },
-  {
-    "id": "info_sup_102",
-    "ordre": 102,
-    "bouton": "info_sup",
-    "categorie": "Électroménager",
-    "texte": "Inverser sens ouverture porte frigo",
+    "categorie": "Exemple",
+    "texte": "Exemple info à cocher",
     "type_reponse": "case",
     "afficher_notes": "oui",
-    "texte_notes_case": "Inverser sens ouverture porte frigo",
+    "texte_notes_case": "Exemple info à cocher",
     "texte_notes_oui": "",
     "texte_notes_non": "",
-    "actif": "oui"
+    "actif": "non"
   },
   {
-    "id": "info_sup_103",
-    "ordre": 103,
+    "id": "infosup_ex_oui_non",
+    "ordre": 101,
     "bouton": "info_sup",
-    "categorie": "Pose",
-    "texte": "Aide pose nécessaire ?",
+    "categorie": "Exemple",
+    "texte": "Exemple question Oui / Non",
     "type_reponse": "oui_non",
     "afficher_notes": "oui",
     "texte_notes_case": "",
-    "texte_notes_oui": "Aide pose nécessaire",
-    "texte_notes_non": "",
-    "actif": "oui"
-  },
-  {
-    "id": "info_sup_104",
-    "ordre": 104,
-    "bouton": "info_sup",
-    "categorie": "Mesures",
-    "texte": "Mesures à récupérer ?",
-    "type_reponse": "oui_non",
-    "afficher_notes": "oui",
-    "texte_notes_case": "",
-    "texte_notes_oui": "Mesures à récupérer",
-    "texte_notes_non": "",
-    "actif": "oui"
+    "texte_notes_oui": "Exemple question : Oui",
+    "texte_notes_non": "Exemple question : Non",
+    "actif": "non"
   }
 ]
 </script>
@@ -2818,6 +2716,10 @@ function getGeneralRecapLines(){
 
     if (getRadioValue("info_piece_encombree") === "oui") out.push("Pièce encombrée");
 
+    if (document.querySelector('input[name="info_depose_charge_client"]')?.checked) {
+        out.push("Dépose/enlèvement à charge client");
+    }
+
     if (travauxDeposeOui()) {
         const dc = generalInputValue("depose_cuisine_ml");
         if (getRadioValue("depose_cuisine") === "oui" && dc) out.push(`${dc} ml dépose cuisine`);
@@ -3618,7 +3520,7 @@ const text = buildRecap();
     }
 
     // --- Informations générales ---
-    if (t.matches('input[name="travaux_en_cours"], input[name="info_acces_ok"], input[name="info_accessibilite"], input[name="info_tva_reduite"], input[name="info_piece_encombree"], input[name="info_travaux_depose"], input[name="depose_cuisine"], input[name="depose_faience"], input[name="depose_murets"], input[name="enlevement_cuisine"], input[name="enlevement_gravats"]')) {
+    if (t.matches('input[name="travaux_en_cours"], input[name="info_acces_ok"], input[name="info_accessibilite"], input[name="info_tva_reduite"], input[name="info_piece_encombree"], input[name="info_travaux_depose"], input[name="info_depose_charge_client"], input[name="depose_cuisine"], input[name="depose_faience"], input[name="depose_murets"], input[name="enlevement_cuisine"], input[name="enlevement_gravats"]')) {
       handleGeneralQuestionAction(t);
       syncTvaReducedLinkBox();
       syncGeneralConditionalRows();

@@ -814,7 +814,7 @@
   <button class="ghost btn-small" id="btnMemo" type="button">Mémo</button>
   <button class="ghost btn-small" id="btnInfoSup" type="button">Info sup</button>
   <button class="ghost btn-small" id="btnMode" type="button">Mode 1 par 1</button>
-  <div class="pill">v2.38</div>
+  <div class="pill">v2.39</div>
 </div>
 </div>
 <div class="card">
@@ -898,7 +898,7 @@
   <div class="options compact-gap general-choice-group">
     <label><input name="info_travaux_depose" type="radio" value="oui"/><span class="opt compact">Oui</span></label>
     <label><input name="info_travaux_depose" type="radio" value="non"/><span class="opt compact">Non</span></label>
-    <label><input name="info_depose_charge_client" type="checkbox" value="oui"/><span class="opt compact opt-depose-client">Dépose/enlèvement à charge client</span></label>
+    <label><input name="info_travaux_depose" type="radio" value="charge_client"/><span class="opt compact opt-depose-client">Dépose/enlèvement à charge client</span></label>
   </div>
 </div>
 
@@ -2716,7 +2716,7 @@ function getGeneralRecapLines(){
 
     if (getRadioValue("info_piece_encombree") === "oui") out.push("Pièce encombrée");
 
-    if (document.querySelector('input[name="info_depose_charge_client"]')?.checked) {
+    if (getRadioValue("info_travaux_depose") === "charge_client") {
         out.push("Dépose/enlèvement à charge client");
     }
 
@@ -3520,7 +3520,7 @@ const text = buildRecap();
     }
 
     // --- Informations générales ---
-    if (t.matches('input[name="travaux_en_cours"], input[name="info_acces_ok"], input[name="info_accessibilite"], input[name="info_tva_reduite"], input[name="info_piece_encombree"], input[name="info_travaux_depose"], input[name="info_depose_charge_client"], input[name="depose_cuisine"], input[name="depose_faience"], input[name="depose_murets"], input[name="enlevement_cuisine"], input[name="enlevement_gravats"]')) {
+    if (t.matches('input[name="travaux_en_cours"], input[name="info_acces_ok"], input[name="info_accessibilite"], input[name="info_tva_reduite"], input[name="info_piece_encombree"], input[name="info_travaux_depose"], input[name="depose_cuisine"], input[name="depose_faience"], input[name="depose_murets"], input[name="enlevement_cuisine"], input[name="enlevement_gravats"]')) {
       handleGeneralQuestionAction(t);
       syncTvaReducedLinkBox();
       syncGeneralConditionalRows();

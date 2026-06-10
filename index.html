@@ -843,7 +843,7 @@
   <button class="ghost btn-small" id="btnMemo" type="button">Mémo</button>
   <button class="ghost btn-small" id="btnInfoSup" type="button">Info sup</button>
   <button class="ghost btn-small" id="btnMode" type="button">Mode 1 par 1</button>
-  <div class="pill">v2.42</div>
+  <div class="pill">v2.43</div>
 </div>
 </div>
 <div class="card">
@@ -4102,9 +4102,9 @@ function applyAlternatingRows() {
         // ----------------------------
         // Wizard conditions (steps à ignorer selon selections)
         // ----------------------------
-        function isPlaqueListingOn() {
-            const cb = document.querySelector('input[name="plaque_listing"]');
-            return !!(cb && cb.checked);
+        function isPlaqueNonSouhaiteeOn() {
+            const rb = document.querySelector('input[name="plaque"][value="pasde"]');
+            return !!(rb && rb.checked);
         }
         function stepHasAppliance(step, label) {
             return (step || []).some(r => (r && r.getAttribute && r.getAttribute("data-appliance") === label));
@@ -4113,10 +4113,11 @@ function applyAlternatingRows() {
             const step = wizardSteps[idx] || [];
             const generalRows = step.filter(r => r && r.hasAttribute && r.hasAttribute("data-general"));
             if (generalRows.length && generalRows.every(r => isGeneralRowHidden(r))) return true;
-            if (isPlaqueListingOn()) {
-                if (stepHasAppliance(step, "Plaque de cuisson - hotte intégrée") || stepHasAppliance(step, "Cuisinière / Piano")) {
-                    return true;
-                }
+
+            // Les alternatives "Plaque de cuisson - hotte intégrée" et "Cuisinière / Piano"
+            // ne doivent être proposées que si la plaque de cuisson simple est marquée "Non souhaité".
+            if (stepHasAppliance(step, "Plaque de cuisson - hotte intégrée") || stepHasAppliance(step, "Cuisinière / Piano")) {
+                return !isPlaqueNonSouhaiteeOn();
             }
             return false;
         }

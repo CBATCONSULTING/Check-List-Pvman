@@ -852,6 +852,7 @@
         @media(max-width:720px){.portal-tools{grid-template-columns:1fr}.portal-card{padding:20px}.portal-tool{min-height:140px}.auth-user{display:none}}
 
         /* v2.46 : identification du client dans la page et dans l'onglet */
+        /* v2.47 : saisie client fluide, sans reconstruction du récapitulatif */
         .client-identity{
             display:flex;align-items:center;gap:12px;margin:0 0 14px;padding:12px 14px;
             border:1px solid rgba(96,165,250,.48);border-radius:15px;background:rgba(37,99,235,.12);
@@ -913,7 +914,7 @@
   <button class="ghost btn-small" id="btnMemo" type="button">Mémo</button>
   <button class="ghost btn-small" id="btnInfoSup" type="button">Info sup</button>
   <button class="ghost btn-small" id="btnMode" type="button">Mode 1 par 1</button>
-  <div class="pill">v2.46</div>
+  <div class="pill">v2.47</div>
   <div class="pill auth-user hidden" id="authUserLabel"></div>
   <button class="ghost btn-small hidden" id="logoutBtn" type="button">Déconnexion</button>
 </div>
@@ -3480,7 +3481,7 @@ function getLuminairesPcExportLine(){
         }
 
         function buildRecap() {
-            const clientName = updateClientIdentity();
+            updateClientIdentity();
             syncOtherNonIkeaLabels();
             syncGazChiffrageOptions();
             syncGeneralConditionalRows();
@@ -3497,7 +3498,6 @@ function getLuminairesPcExportLine(){
             const generalOnlyMode = document.body.classList.contains("general-step");
             if (generalOnlyMode) {
                 const generalLines = [...getGeneralRecapLines(), ...getInfoSupRecapLines()];
-                if (clientName) generalLines.unshift(`CLIENT : ${clientName}`, "");
                 output.value = generalLines.join("\n");
                 autoGrowTextarea(output);
                 updateWizardNavState();
@@ -3505,7 +3505,7 @@ function getLuminairesPcExportLine(){
             }
 
             const rows = document.querySelectorAll(".row[data-appliance], .row[data-special], .row[data-toggle], .row[data-luminaires]");
-            const lines = clientName ? [`CLIENT : ${clientName}`, ""] : [];
+            const lines = [];
             const plaqueHotteIntegreeActive = isPlaqueHotteIntegreeActive();
             const plaqueActive = isPresentForExclusion("plaque", "plaque_nonikea", "plaque_listing");
             const pianoActive  = isPresentForExclusion("piano", "piano_nonikea", "piano_listing");
@@ -3793,7 +3793,7 @@ const text = buildRecap();
             showToast("Réinitialisé");
         });
 
-        document.getElementById("clientIdentity")?.addEventListener("input", buildRecap);
+        document.getElementById("clientIdentity")?.addEventListener("input", updateClientIdentity);
 
         updateCopyVisibility();
         renderMemoItems("memo");

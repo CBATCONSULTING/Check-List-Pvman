@@ -4,7 +4,7 @@
 <head>
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1" name="viewport"/>
-<title>Check List PVman</title>
+<title>Outils Challenge Bat - Check-list pré-visite</title>
 <link rel="icon" type="image/png" href="https://static.wixstatic.com/media/9c09bd_f289e680cd854593bac8c026d220825a.png"/>
 <link rel="apple-touch-icon" href="https://static.wixstatic.com/media/9c09bd_f289e680cd854593bac8c026d220825a.png"/>
 
@@ -828,9 +828,62 @@
             display:none !important;
         }
 
+        /* v2.45 : authentification Firebase et portail Outils Challenge Bat */
+        .hidden{display:none !important}
+        .auth-gate,.portal-gate{
+            position:fixed;inset:0;z-index:20000;display:flex;align-items:center;justify-content:center;
+            padding:20px;background:radial-gradient(900px 500px at 20% 0%,#162455 0%,rgba(22,36,85,0) 60%),#0b1020;
+        }
+        .portal-gate{z-index:19000}
+        .auth-card,.portal-card{
+            width:min(460px,100%);padding:24px;border:1px solid rgba(255,255,255,.14);border-radius:22px;
+            background:linear-gradient(180deg,rgba(24,34,66,.99),rgba(12,18,38,.99));box-shadow:0 24px 80px rgba(0,0,0,.45)
+        }
+        .portal-card{width:min(820px,100%)}
+        .auth-card h2,.portal-card h2{margin:0 0 7px;font-size:25px}.auth-card p,.portal-card>p{color:var(--muted);font-size:14px;line-height:1.45;margin:0 0 18px}
+        .auth-card label{display:block;font-size:13px;font-weight:800;margin:11px 0 5px}
+        .auth-card input{width:100%;border:1px solid rgba(255,255,255,.16);border-radius:11px;background:rgba(0,0,0,.2);color:var(--text);padding:11px 12px;font-size:15px}
+        .auth-card button{width:100%;margin-top:14px}.auth-message{min-height:18px;margin-top:11px;font-size:13px;font-weight:800;color:#fbbf24}.auth-message.err{color:#fca5a5}.auth-message.ok{color:#86efac}
+        .portal-tools{display:grid;grid-template-columns:1fr 1fr;gap:15px}
+        .portal-tool{display:flex;flex-direction:column;align-items:flex-start;justify-content:space-between;gap:12px;min-height:170px;padding:20px;border:1px solid rgba(255,255,255,.14);border-radius:18px;background:rgba(255,255,255,.055);color:var(--text);text-decoration:none;cursor:pointer;transition:.15s ease}
+        .portal-tool:hover{transform:translateY(-2px);border-color:#60a5fa;background:rgba(37,99,235,.12)}
+        .portal-icon{font-size:34px}.portal-tool strong{font-size:18px}.portal-tool small{font-size:13px;line-height:1.4;color:var(--muted)}.portal-open{background:#2563eb;border-radius:999px;padding:8px 12px;font-size:12px;font-weight:900}
+        .auth-user{max-width:210px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.tool-nav{background:rgba(37,99,235,.3);border:1px solid rgba(96,165,250,.5)}
+        @media(max-width:720px){.portal-tools{grid-template-columns:1fr}.portal-card{padding:20px}.portal-tool{min-height:140px}.auth-user{display:none}}
+
 </style>
 </head>
 <body>
+<section id="authGate" class="auth-gate">
+  <div class="auth-card">
+    <h2>Connexion requise</h2>
+    <p>Connectez-vous avec le même compte que celui utilisé pour le générateur de devis IKEA.</p>
+    <label for="loginEmail">Email</label>
+    <input id="loginEmail" type="email" autocomplete="username" placeholder="utilisateur@entreprise.fr" />
+    <label for="loginPassword">Mot de passe</label>
+    <input id="loginPassword" type="password" autocomplete="current-password" placeholder="Mot de passe" />
+    <button id="loginBtn" class="primary" type="button">Se connecter</button>
+    <div id="authMessage" class="auth-message">Vérification de la session...</div>
+  </div>
+</section>
+
+<section id="portalGate" class="portal-gate hidden" aria-label="Outils Challenge Bat">
+  <div class="portal-card">
+    <h2>Outils Challenge Bat</h2>
+    <p>Choisissez l’outil que vous souhaitez utiliser.</p>
+    <div class="portal-tools">
+      <a class="portal-tool" href="/Devis-IKEA/?open=devis">
+        <span class="portal-icon">🧾</span><strong>Générateur de devis IKEA</strong>
+        <small>Analyser un PDF IKEA et générer le devis détaillé et le récapitulatif client.</small><span class="portal-open">Ouvrir</span>
+      </a>
+      <button id="openChecklistBtn" class="portal-tool" type="button">
+        <span class="portal-icon">✅</span><strong>Check-list pré-visite</strong>
+        <small>Renseigner les contrôles terrain et préparer les informations nécessaires au chiffrage.</small><span class="portal-open">Ouvrir</span>
+      </button>
+    </div>
+  </div>
+</section>
+
 <div class="wrap">
 <div class="header">
 <div>
@@ -840,10 +893,14 @@
 <div class="nav-hint">Cliquer sur "Suivant" pour passer à la question suivante (ou touche Entrée clavier)</div>
 </div>
 <div class="header-right">
+  <button class="ghost btn-small tool-nav" id="portalBtn" type="button">Outils</button>
+  <a class="ghost btn-small tool-nav" href="/Devis-IKEA/?open=devis" style="text-decoration:none;color:inherit">Devis IKEA</a>
   <button class="ghost btn-small" id="btnMemo" type="button">Mémo</button>
   <button class="ghost btn-small" id="btnInfoSup" type="button">Info sup</button>
   <button class="ghost btn-small" id="btnMode" type="button">Mode 1 par 1</button>
-  <div class="pill">v2.44</div>
+  <div class="pill">v2.45</div>
+  <div class="pill auth-user hidden" id="authUserLabel"></div>
+  <button class="ghost btn-small hidden" id="logoutBtn" type="button">Déconnexion</button>
 </div>
 </div>
 <div class="card">
@@ -2040,7 +2097,62 @@
 </div>
 
 <div class="toast" id="toast">Copié ✅</div>
+<script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-auth-compat.js"></script>
 <script>
+        const firebaseConfig = {
+          apiKey: "AIzaSyB-hKccNAiciGjUeS6L-Ws3KRzYxMyU3L4",
+          authDomain: "cbat-consulting.firebaseapp.com",
+          projectId: "cbat-consulting",
+          storageBucket: "cbat-consulting.firebasestorage.app",
+          messagingSenderId: "258359623144",
+          appId: "1:258359623144:web:4e5a54a09e5ac9245a785d"
+        };
+        const CHECKLIST_LICENSE_URL = "https://ikea-pdf-analyzer-pntpqiubqq-ew.a.run.app/license";
+        firebase.initializeApp(firebaseConfig);
+        firebase.auth().setPersistence(firebase.auth.Auth.Persistence.LOCAL);
+
+        const authGate = document.getElementById("authGate");
+        const portalGate = document.getElementById("portalGate");
+        const authMessage = document.getElementById("authMessage");
+        const loginEmail = document.getElementById("loginEmail");
+        const loginPassword = document.getElementById("loginPassword");
+        const loginBtn = document.getElementById("loginBtn");
+        const logoutBtn = document.getElementById("logoutBtn");
+        const authUserLabel = document.getElementById("authUserLabel");
+
+        function setChecklistAuthMessage(message,type=""){
+          authMessage.textContent=message||"";authMessage.classList.remove("ok","err");if(type)authMessage.classList.add(type);
+        }
+        function showChecklistPortal(show){portalGate.classList.toggle("hidden",!show)}
+        async function verifyChecklistLicense(user){
+          const token=await user.getIdToken();
+          const response=await fetch(CHECKLIST_LICENSE_URL,{headers:{Authorization:`Bearer ${token}`}});
+          const data=await response.json().catch(()=>({}));
+          if(!response.ok||data.ok===false)throw new Error(data.message||"Licence non autorisée.");
+          return data.license||{};
+        }
+        async function checklistLogin(){
+          const email=(loginEmail.value||"").trim(),password=loginPassword.value||"";
+          if(!email||!password){setChecklistAuthMessage("Saisissez l’email et le mot de passe.","err");return}
+          try{setChecklistAuthMessage("Connexion en cours...");await firebase.auth().signInWithEmailAndPassword(email,password)}
+          catch(error){console.error(error);setChecklistAuthMessage("Connexion impossible : vérifiez l’email et le mot de passe.","err")}
+        }
+        loginBtn.addEventListener("click",checklistLogin);
+        loginPassword.addEventListener("keydown",event=>{if(event.key==="Enter")checklistLogin()});
+        logoutBtn.addEventListener("click",()=>firebase.auth().signOut());
+        document.getElementById("portalBtn").addEventListener("click",()=>showChecklistPortal(true));
+        document.getElementById("openChecklistBtn").addEventListener("click",()=>showChecklistPortal(false));
+        firebase.auth().onAuthStateChanged(async user=>{
+          if(!user){authGate.classList.remove("hidden");showChecklistPortal(false);authUserLabel.classList.add("hidden");logoutBtn.classList.add("hidden");setChecklistAuthMessage("Connectez-vous pour utiliser la check-list.");return}
+          try{
+            setChecklistAuthMessage("Vérification de la licence...");
+            await verifyChecklistLicense(user);
+            authGate.classList.add("hidden");authUserLabel.textContent=user.email||"Connecté";authUserLabel.classList.remove("hidden");logoutBtn.classList.remove("hidden");
+            showChecklistPortal(new URLSearchParams(location.search).get("open")!=="checklist");
+          }catch(error){console.error(error);await firebase.auth().signOut();authGate.classList.remove("hidden");setChecklistAuthMessage(error.message||"Compte non autorisé.","err")}
+        });
+
         const output = document.getElementById("output");
         const toast = document.getElementById("toast");
         const btnCopy = document.getElementById("btnCopy");

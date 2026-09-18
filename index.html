@@ -854,6 +854,7 @@
         /* v2.46 : identification du client dans la page et dans l'onglet */
         /* v2.47 : saisie client fluide, sans reconstruction du récapitulatif */
         /* v2.48 : exclusion du champ client de l'écouteur global des champs texte */
+        /* v2.49 : portail multi-outils et ouverture dans de nouveaux onglets */
         .client-identity{
             display:flex;align-items:center;gap:12px;margin:0 0 14px;padding:12px 14px;
             border:1px solid rgba(96,165,250,.48);border-radius:15px;background:rgba(37,99,235,.12);
@@ -887,16 +888,24 @@
 <section id="portalGate" class="portal-gate hidden" aria-label="Outils Challenge Bat">
   <div class="portal-card">
     <h2>Outils Challenge Bat</h2>
-    <p>Choisissez l’outil que vous souhaitez utiliser.</p>
+    <p>Choisissez l’outil que vous souhaitez utiliser. Chaque outil s’ouvre dans un nouvel onglet.</p>
     <div class="portal-tools">
-      <a class="portal-tool" href="/Devis-IKEA/?open=devis">
+      <a class="portal-tool" href="/Devis-IKEA/?open=devis" target="_blank" rel="noopener noreferrer">
         <span class="portal-icon">🧾</span><strong>Générateur de devis IKEA</strong>
         <small>Analyser un PDF IKEA et générer le devis détaillé et le récapitulatif client.</small><span class="portal-open">Ouvrir</span>
       </a>
-      <button id="openChecklistBtn" class="portal-tool" type="button">
+      <a class="portal-tool" href="/Check-List-Pvman/?open=checklist" target="_blank" rel="noopener noreferrer">
         <span class="portal-icon">✅</span><strong>Check-list pré-visite</strong>
         <small>Renseigner les contrôles terrain et préparer les informations nécessaires au chiffrage.</small><span class="portal-open">Ouvrir</span>
-      </button>
+      </a>
+      <a class="portal-tool" href="https://kitchen.planner.ikea.com/fr/fr/" target="_blank" rel="noopener noreferrer">
+        <span class="portal-icon">📐</span><strong>IKEA Kitchen Planner</strong>
+        <small>Ouvrir l’outil IKEA de conception et de planification de cuisine.</small><span class="portal-open">Ouvrir</span>
+      </a>
+      <a class="portal-tool" href="https://www.myextrabat.com" target="_blank" rel="noopener noreferrer">
+        <span class="portal-icon">🏗️</span><strong>Extrabat</strong>
+        <small>Accéder à l’espace de gestion commerciale et aux dossiers clients.</small><span class="portal-open">Ouvrir</span>
+      </a>
     </div>
   </div>
 </section>
@@ -911,11 +920,11 @@
 </div>
 <div class="header-right">
   <button class="ghost btn-small tool-nav" id="portalBtn" type="button">Outils</button>
-  <a class="ghost btn-small tool-nav" href="/Devis-IKEA/?open=devis" style="text-decoration:none;color:inherit">Devis IKEA</a>
+  <a class="ghost btn-small tool-nav" href="/Devis-IKEA/?open=devis" target="_blank" rel="noopener noreferrer" style="text-decoration:none;color:inherit">Devis IKEA</a>
   <button class="ghost btn-small" id="btnMemo" type="button">Mémo</button>
   <button class="ghost btn-small" id="btnInfoSup" type="button">Info sup</button>
   <button class="ghost btn-small" id="btnMode" type="button">Mode 1 par 1</button>
-  <div class="pill">v2.48</div>
+  <div class="pill">v2.49</div>
   <div class="pill auth-user hidden" id="authUserLabel"></div>
   <button class="ghost btn-small hidden" id="logoutBtn" type="button">Déconnexion</button>
 </div>
@@ -2162,8 +2171,7 @@
         loginBtn.addEventListener("click",checklistLogin);
         loginPassword.addEventListener("keydown",event=>{if(event.key==="Enter")checklistLogin()});
         logoutBtn.addEventListener("click",()=>firebase.auth().signOut());
-        document.getElementById("portalBtn").addEventListener("click",()=>showChecklistPortal(true));
-        document.getElementById("openChecklistBtn").addEventListener("click",()=>showChecklistPortal(false));
+        document.getElementById("portalBtn").addEventListener("click",()=>window.open("/Devis-IKEA/?portal=1","_blank","noopener"));
         firebase.auth().onAuthStateChanged(async user=>{
           if(!user){authGate.classList.remove("hidden");showChecklistPortal(false);authUserLabel.classList.add("hidden");logoutBtn.classList.add("hidden");setChecklistAuthMessage("Connectez-vous pour utiliser la check-list.");return}
           try{

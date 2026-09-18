@@ -853,6 +853,7 @@
 
         /* v2.46 : identification du client dans la page et dans l'onglet */
         /* v2.47 : saisie client fluide, sans reconstruction du récapitulatif */
+        /* v2.48 : exclusion du champ client de l'écouteur global des champs texte */
         .client-identity{
             display:flex;align-items:center;gap:12px;margin:0 0 14px;padding:12px 14px;
             border:1px solid rgba(96,165,250,.48);border-radius:15px;background:rgba(37,99,235,.12);
@@ -914,7 +915,7 @@
   <button class="ghost btn-small" id="btnMemo" type="button">Mémo</button>
   <button class="ghost btn-small" id="btnInfoSup" type="button">Info sup</button>
   <button class="ghost btn-small" id="btnMode" type="button">Mode 1 par 1</button>
-  <div class="pill">v2.47</div>
+  <div class="pill">v2.48</div>
   <div class="pill auth-user hidden" id="authUserLabel"></div>
   <button class="ghost btn-small hidden" id="logoutBtn" type="button">Déconnexion</button>
 </div>
@@ -3876,6 +3877,7 @@ const text = buildRecap();
   // =============================================================
   document.addEventListener("change", (e) => {
     const t = e.target;
+    if (t?.id === "clientIdentity") return;
 
     function isPlanOrCredenceRow(row){
       if(!row) return false;
@@ -4135,7 +4137,7 @@ updatePlaqueHotteConstraint();
     updateWizardNavState();
   });
 document.addEventListener("input", (e) => {
-            if (e.target.matches('input[type="text"]')) {
+            if (e.target.matches('input[type="text"]') && e.target.closest("#list")) {
                 buildRecap();
                 updateWizardNavState();
             }

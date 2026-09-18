@@ -851,6 +851,21 @@
         .auth-user{max-width:210px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.tool-nav{background:rgba(37,99,235,.3);border:1px solid rgba(96,165,250,.5)}
         @media(max-width:720px){.portal-tools{grid-template-columns:1fr}.portal-card{padding:20px}.portal-tool{min-height:140px}.auth-user{display:none}}
 
+        /* v2.46 : identification du client dans la page et dans l'onglet */
+        .client-identity{
+            display:flex;align-items:center;gap:12px;margin:0 0 14px;padding:12px 14px;
+            border:1px solid rgba(96,165,250,.48);border-radius:15px;background:rgba(37,99,235,.12);
+            box-shadow:0 8px 24px rgba(0,0,0,.15)
+        }
+        .client-identity label{font-size:13px;font-weight:900;white-space:nowrap;color:#bfdbfe}
+        .client-identity input{
+            flex:1;min-width:180px;border:1px solid rgba(147,197,253,.55);border-radius:11px;
+            background:rgba(6,12,30,.7);color:#fff;padding:10px 12px;font-size:15px;font-weight:750;outline:none
+        }
+        .client-identity input:focus{border-color:#93c5fd;box-shadow:0 0 0 3px rgba(59,130,246,.22)}
+        .client-identity input::placeholder{color:rgba(191,219,254,.55);font-weight:500}
+        @media(max-width:620px){.client-identity{align-items:stretch;flex-direction:column;gap:7px}.client-identity label{white-space:normal}.client-identity input{width:100%}}
+
 </style>
 </head>
 <body>
@@ -898,10 +913,14 @@
   <button class="ghost btn-small" id="btnMemo" type="button">Mémo</button>
   <button class="ghost btn-small" id="btnInfoSup" type="button">Info sup</button>
   <button class="ghost btn-small" id="btnMode" type="button">Mode 1 par 1</button>
-  <div class="pill">v2.45</div>
+  <div class="pill">v2.46</div>
   <div class="pill auth-user hidden" id="authUserLabel"></div>
   <button class="ghost btn-small hidden" id="logoutBtn" type="button">Déconnexion</button>
 </div>
+</div>
+<div class="client-identity">
+  <label for="clientIdentity">Client / Référence chantier</label>
+  <input id="clientIdentity" type="text" autocomplete="off" placeholder="Ex. DUPONT — Paris 15" />
 </div>
 <div class="card">
 <div class="section-title" id="sectionTitle">Informations générales</div>
@@ -3451,7 +3470,17 @@ function getLuminairesPcExportLine(){
 
 
 
+        function updateClientIdentity(){
+            const input = document.getElementById("clientIdentity");
+            const clientName = (input?.value || "").trim();
+            document.title = clientName
+                ? `${clientName} — Check-list pré-visite`
+                : "Outils Challenge Bat - Check-list pré-visite";
+            return clientName;
+        }
+
         function buildRecap() {
+            const clientName = updateClientIdentity();
             syncOtherNonIkeaLabels();
             syncGazChiffrageOptions();
             syncGeneralConditionalRows();
@@ -3468,6 +3497,7 @@ function getLuminairesPcExportLine(){
             const generalOnlyMode = document.body.classList.contains("general-step");
             if (generalOnlyMode) {
                 const generalLines = [...getGeneralRecapLines(), ...getInfoSupRecapLines()];
+                if (clientName) generalLines.unshift(`CLIENT : ${clientName}`, "");
                 output.value = generalLines.join("\n");
                 autoGrowTextarea(output);
                 updateWizardNavState();
@@ -3475,7 +3505,7 @@ function getLuminairesPcExportLine(){
             }
 
             const rows = document.querySelectorAll(".row[data-appliance], .row[data-special], .row[data-toggle], .row[data-luminaires]");
-            const lines = [];
+            const lines = clientName ? [`CLIENT : ${clientName}`, ""] : [];
             const plaqueHotteIntegreeActive = isPlaqueHotteIntegreeActive();
             const plaqueActive = isPresentForExclusion("plaque", "plaque_nonikea", "plaque_listing");
             const pianoActive  = isPresentForExclusion("piano", "piano_nonikea", "piano_listing");
@@ -3762,6 +3792,8 @@ const text = buildRecap();
             buildRecap();
             showToast("Réinitialisé");
         });
+
+        document.getElementById("clientIdentity")?.addEventListener("input", buildRecap);
 
         updateCopyVisibility();
         renderMemoItems("memo");

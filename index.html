@@ -851,6 +851,7 @@
         .portal-logo{display:block;width:auto;max-width:170px;height:42px;object-fit:contain;object-position:left center}
         .portal-logo-cbat{height:44px;max-width:175px}.portal-logo-challenge{height:48px;max-width:60px}.portal-logo-ikea{height:42px;max-width:110px}.portal-logo-extrabat{height:38px;max-width:165px}
         .portal-tool strong{font-size:18px}.portal-tool small{font-size:13px;line-height:1.4;color:var(--muted)}.portal-open{background:#2563eb;border-radius:999px;padding:8px 12px;font-size:12px;font-weight:900}
+        .portal-tool-multi{position:relative;cursor:default}.portal-tabs{display:flex;gap:8px;align-self:stretch;margin-bottom:2px}.portal-tab{flex:1;padding:7px 9px;border-radius:9px;background:#e2e8f0;color:#1e3a8a;text-align:center;text-decoration:none;font-size:12px;font-weight:800}.portal-tab:hover{background:#bfdbfe}.portal-main-link{display:flex;flex:1;align-self:stretch;flex-direction:column;align-items:flex-start;justify-content:space-between;gap:12px;color:inherit;text-decoration:none}
         .auth-user{max-width:210px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.tool-nav{background:rgba(37,99,235,.3);border:1px solid rgba(96,165,250,.5)}
         @media(max-width:720px){.portal-tools{grid-template-columns:1fr}.portal-card{padding:20px}.portal-tool{min-height:140px}.auth-user{display:none}}
 
@@ -915,6 +916,18 @@
   </div>
 </section>
 
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+  const grid = document.querySelector("#portalGate .portal-tools");
+  if (!grid || grid.querySelector("[data-extra-portal-tools]")) return;
+  const challengeLogo = grid.querySelector(".portal-logo-challenge")?.src || "";
+  const ikeaLogo = grid.querySelector(".portal-logo-ikea")?.src || "";
+  const extra = document.createElement("div"); extra.dataset.extraPortalTools = "true"; extra.style.display = "contents";
+  extra.innerHTML = `<div class="portal-tool portal-tool-multi"><div class="portal-tabs"><a class="portal-tab" href="https://www.challengebat.fr/pointage" target="_blank" rel="noopener noreferrer">Pointage</a><a class="portal-tab" href="https://www.challengebat.fr/documents-entreprise" target="_blank" rel="noopener noreferrer">Connexion</a></div><a class="portal-main-link" href="https://www.challengebat.fr/" target="_blank" rel="noopener noreferrer"><img class="portal-logo portal-logo-challenge" src="${challengeLogo}" alt="Challenge Bat"><strong>Site Challenge Bat</strong><small>Accéder au site de Challenge Bat.</small><span class="portal-open">Ouvrir</span></a></div><a class="portal-tool" href="https://sites.google.com/challengebat.fr/pvmans" target="_blank" rel="noopener noreferrer"><img class="portal-logo portal-logo-challenge" src="${challengeLogo}" alt="Challenge Bat"><strong>Intranet Challenge Bat</strong><small>Accéder à l’intranet des PVmans.</small><span class="portal-open">Ouvrir</span></a><a class="portal-tool" href="https://www.ikea.com/fr/fr/" target="_blank" rel="noopener noreferrer"><img class="portal-logo portal-logo-ikea" src="${ikeaLogo}" alt="IKEA"><strong>Site internet IKEA</strong><small>Accéder au site français d’IKEA.</small><span class="portal-open">Ouvrir</span></a><a class="portal-tool" href="https://eu.centiro.ikea.com/c3neo/UI/commonui/Login" target="_blank" rel="noopener noreferrer"><img class="portal-logo portal-logo-ikea" src="${ikeaLogo}" alt="IKEA"><strong>Centiro</strong><small>Accéder à la plateforme Centiro IKEA.</small><span class="portal-open">Ouvrir</span></a>`;
+  grid.appendChild(extra);
+});
+</script>
+
 <div class="wrap">
 <div class="header">
 <div>
@@ -929,7 +942,7 @@
   <button class="ghost btn-small" id="btnMemo" type="button">Mémo</button>
   <button class="ghost btn-small" id="btnInfoSup" type="button">Info sup</button>
   <button class="ghost btn-small" id="btnMode" type="button">Mode 1 par 1</button>
-  <div class="pill">v2.51</div>
+  <div class="pill">v2.52</div>
   <div class="pill auth-user hidden" id="authUserLabel"></div>
   <button class="ghost btn-small hidden" id="logoutBtn" type="button">Déconnexion</button>
 </div>

@@ -320,6 +320,36 @@
             border-color: rgba(31,143,74,.7);
             box-shadow: 0 0 0 2px rgba(31,143,74,.18) inset;
         }
+
+        /* v2.54 : commentaire facultatif lié aux travaux/chiffrages */
+        .work-comment-wrap{
+            display:none;
+            flex:1 1 100%;
+            width:100%;
+            margin-top:2px;
+            justify-content:flex-end;
+        }
+        .work-comment-wrap.show{ display:flex; }
+        .work-comment-input{
+            width:min(100%, 430px);
+            min-width:260px;
+            border-radius:12px;
+            border:1px solid rgba(255,255,255,.14);
+            background:rgba(255,255,255,.06);
+            color:var(--text);
+            padding:9px 11px;
+            outline:none;
+            font-size:12px;
+        }
+        .work-comment-input::placeholder{ color:rgba(255,255,255,.45); }
+        .work-comment-input:focus{
+            border-color:rgba(147,197,253,.8);
+            box-shadow:0 0 0 2px rgba(59,130,246,.16);
+        }
+        @media(max-width:720px){
+            .work-comment-wrap{ justify-content:flex-start; }
+            .work-comment-input{ width:100%; min-width:0; }
+        }
 /* Chaque "bouton" est un label qui encapsule son input + son visuel */
         .options label{
             position: relative;
@@ -942,7 +972,7 @@ document.addEventListener("DOMContentLoaded", () => {
   <button class="ghost btn-small" id="btnMemo" type="button">Mémo</button>
   <button class="ghost btn-small" id="btnInfoSup" type="button">Info sup</button>
   <button class="ghost btn-small" id="btnMode" type="button">Mode 1 par 1</button>
-  <div class="pill">v2.52</div>
+  <div class="pill">v2.54</div>
   <div class="pill auth-user hidden" id="authUserLabel"></div>
   <button class="ghost btn-small hidden" id="logoutBtn" type="button">Déconnexion</button>
 </div>
@@ -3020,6 +3050,69 @@ function syncWidthSelectAvailability(){
 
 const CHIFFRAGE_SELECTORS = 'select[data-plomberie-evier="1"], select[data-decoupes-plan="1"], select[data-protection-plaque="1"], select[data-protection-plaquehotte="1"], select[data-protection-piano="1"], select[data-pc-hotte="1"], select[data-protection-four="1"], select[data-pc-microondes="1"], select[data-protection-lv="1"], select[data-pc-frigo="1"], select[data-pc-congel="1"], select[data-protection-ll="1"], select[data-protection-sl="1"], select[data-pc-luminaires="1"]';
 
+
+// v2.54 : commentaires facultatifs sur les travaux réellement à chiffrer.
+function isRealWorkSelection(sel){
+    if (!sel || shouldHideChiffrageSelect(sel)) return false;
+    const value = (sel.value || "").trim();
+    if (!value || value === "ok") return false;
+    const option = sel.options?.[sel.selectedIndex];
+    if (!option || option.disabled) return false;
+    return true;
+}
+
+function injectWorkCommentInputs(){
+    document.querySelectorAll(CHIFFRAGE_SELECTORS).forEach((sel, index) => {
+        if (!sel.id) sel.id = `chiffrage_${index + 1}`;
+        const existing = document.querySelector(`.work-comment-wrap[data-work-comment-for="${sel.id}"]`);
+        if (existing) return;
+
+        const options = sel.closest(".options");
+        if (!options) return;
+
+        const wrap = document.createElement("div");
+        wrap.className = "work-comment-wrap";
+        wrap.setAttribute("data-work-comment-for", sel.id);
+
+        const input = document.createElement("input");
+        input.type = "text";
+        input.className = "work-comment-input";
+        input.setAttribute("data-work-comment-input", "1");
+        input.setAttribute("data-work-comment-for", sel.id);
+        input.placeholder = "Commentaire travaux (optionnel)";
+        input.autocomplete = "off";
+
+        wrap.appendChild(input);
+        options.appendChild(wrap);
+    });
+}
+
+function syncWorkCommentInputs(){
+    document.querySelectorAll(CHIFFRAGE_SELECTORS).forEach(sel => {
+        if (!sel.id) return;
+        const wrap = document.querySelector(`.work-comment-wrap[data-work-comment-for="${sel.id}"]`);
+        const input = wrap?.querySelector('input[data-work-comment-input="1"]');
+        if (!wrap || !input) return;
+
+        const show = isRealWorkSelection(sel);
+        wrap.classList.toggle("show", show);
+        if (!show) input.value = "";
+    });
+}
+
+function getWorkComment(sel){
+    if (!sel?.id || !isRealWorkSelection(sel)) return "";
+    const input = document.querySelector(`input[data-work-comment-input="1"][data-work-comment-for="${sel.id}"]`);
+    return (input?.value || "").trim();
+}
+
+function formatWorkExportLine(sel, line){
+    const base = (line || "").trim();
+    if (!base) return "";
+    const comment = getWorkComment(sel);
+    return comment ? `${base} — ${comment}` : base;
+}
+
 function travauxEnCoursAnswered(){
     return !!document.querySelector('input[name="travaux_en_cours"]:checked');
 }
@@ -3332,7 +3425,7 @@ function getEvierPlomberieExportLine(){
     if (!value || value === "ok") return "";
 
     const option = sel.options[sel.selectedIndex];
-    return ((option && option.getAttribute("data-export")) || (option && option.textContent) || value).trim();
+    return formatWorkExportLine(sel, ((option && option.getAttribute("data-export")) || (option && option.textContent) || value).trim());
 }
 
 function syncTechnicalSelectVisualState(){
@@ -3351,7 +3444,7 @@ function getPlanDecoupesExportLine(){
     if (!value || value === "ok") return "";
 
     const option = sel.options[sel.selectedIndex];
-    return ((option && option.getAttribute("data-export")) || (option && option.textContent) || value).trim();
+    return formatWorkExportLine(sel, ((option && option.getAttribute("data-export")) || (option && option.textContent) || value).trim());
 }
 
 function getPlaqueProtectionExportLine(){
@@ -3363,7 +3456,7 @@ function getPlaqueProtectionExportLine(){
     if (!value || value === "ok") return "";
 
     const option = sel.options[sel.selectedIndex];
-    return ((option && option.getAttribute("data-export")) || (option && option.textContent) || value).trim();
+    return formatWorkExportLine(sel, ((option && option.getAttribute("data-export")) || (option && option.textContent) || value).trim());
 }
 
 
@@ -3375,7 +3468,7 @@ function getPlaqueHotteProtectionExportLine(){
     if (!value || value === "ok") return "";
 
     const option = sel.options[sel.selectedIndex];
-    return ((option && option.getAttribute("data-export")) || (option && option.textContent) || value).trim();
+    return formatWorkExportLine(sel, ((option && option.getAttribute("data-export")) || (option && option.textContent) || value).trim());
 }
 
 function getPianoProtectionExportLine(){
@@ -3386,7 +3479,7 @@ function getPianoProtectionExportLine(){
     if (!value || value === "ok") return "";
 
     const option = sel.options[sel.selectedIndex];
-    return ((option && option.getAttribute("data-export")) || (option && option.textContent) || value).trim();
+    return formatWorkExportLine(sel, ((option && option.getAttribute("data-export")) || (option && option.textContent) || value).trim());
 }
 
 function getHottePcExportLine(){
@@ -3398,7 +3491,7 @@ function getHottePcExportLine(){
     if (!value || value === "ok") return "";
 
     const option = sel.options[sel.selectedIndex];
-    return ((option && option.getAttribute("data-export")) || (option && option.textContent) || value).trim();
+    return formatWorkExportLine(sel, ((option && option.getAttribute("data-export")) || (option && option.textContent) || value).trim());
 }
 
 function getFourProtectionExportLine(){
@@ -3410,7 +3503,7 @@ function getFourProtectionExportLine(){
     if (!value || value === "ok") return "";
 
     const option = sel.options[sel.selectedIndex];
-    return ((option && option.getAttribute("data-export")) || (option && option.textContent) || value).trim();
+    return formatWorkExportLine(sel, ((option && option.getAttribute("data-export")) || (option && option.textContent) || value).trim());
 }
 
 function getMicroOndesPcExportLine(){
@@ -3422,7 +3515,7 @@ function getMicroOndesPcExportLine(){
     if (!value || value === "ok") return "";
 
     const option = sel.options[sel.selectedIndex];
-    return ((option && option.getAttribute("data-export")) || (option && option.textContent) || value).trim();
+    return formatWorkExportLine(sel, ((option && option.getAttribute("data-export")) || (option && option.textContent) || value).trim());
 }
 
 function getLvProtectionExportLine(){
@@ -3434,7 +3527,7 @@ function getLvProtectionExportLine(){
     if (!value || value === "ok") return "";
 
     const option = sel.options[sel.selectedIndex];
-    return ((option && option.getAttribute("data-export")) || (option && option.textContent) || value).trim();
+    return formatWorkExportLine(sel, ((option && option.getAttribute("data-export")) || (option && option.textContent) || value).trim());
 }
 
 
@@ -3446,7 +3539,7 @@ function getFrigoPcExportLine(){
     if (!value || value === "ok") return "";
 
     const option = sel.options[sel.selectedIndex];
-    return ((option && option.getAttribute("data-export")) || (option && option.textContent) || value).trim();
+    return formatWorkExportLine(sel, ((option && option.getAttribute("data-export")) || (option && option.textContent) || value).trim());
 }
 
 function getCongelPcExportLine(){
@@ -3457,7 +3550,7 @@ function getCongelPcExportLine(){
     if (!value || value === "ok") return "";
 
     const option = sel.options[sel.selectedIndex];
-    return ((option && option.getAttribute("data-export")) || (option && option.textContent) || value).trim();
+    return formatWorkExportLine(sel, ((option && option.getAttribute("data-export")) || (option && option.textContent) || value).trim());
 }
 
 
@@ -3469,7 +3562,7 @@ function getLlProtectionExportLine(){
     if (!value || value === "ok") return "";
 
     const option = sel.options[sel.selectedIndex];
-    return ((option && option.getAttribute("data-export")) || (option && option.textContent) || value).trim();
+    return formatWorkExportLine(sel, ((option && option.getAttribute("data-export")) || (option && option.textContent) || value).trim());
 }
 
 
@@ -3481,7 +3574,7 @@ function getSlProtectionExportLine(){
     if (!value || value === "ok") return "";
 
     const option = sel.options[sel.selectedIndex];
-    return ((option && option.getAttribute("data-export")) || (option && option.textContent) || value).trim();
+    return formatWorkExportLine(sel, ((option && option.getAttribute("data-export")) || (option && option.textContent) || value).trim());
 }
 
 
@@ -3493,7 +3586,7 @@ function getLuminairesPcExportLine(){
     if (!value || value === "ok") return "";
 
     const option = sel.options[sel.selectedIndex];
-    return ((option && option.getAttribute("data-export")) || (option && option.textContent) || value).trim();
+    return formatWorkExportLine(sel, ((option && option.getAttribute("data-export")) || (option && option.textContent) || value).trim());
 }
 
 
@@ -3521,6 +3614,8 @@ function getLuminairesPcExportLine(){
         syncNonIkeaLengthInputs();
         injectMitigeurHeightInputs();
         syncMitigeurHeightInputs();
+        injectWorkCommentInputs();
+        syncWorkCommentInputs();
 
             const generalOnlyMode = document.body.classList.contains("general-step");
             if (generalOnlyMode) {

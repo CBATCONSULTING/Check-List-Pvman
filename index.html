@@ -352,6 +352,7 @@
         }
 
         /* v2.55 : commentaire facultatif pour les postes de dépose/enlèvement */
+        /* v2.56 : suppression de la question Finitions latérales */
         .depose-comment-wrap{
             display:none;
             flex:1 1 100%;
@@ -1002,7 +1003,7 @@ document.addEventListener("DOMContentLoaded", () => {
   <button class="ghost btn-small" id="btnMemo" type="button">Mémo</button>
   <button class="ghost btn-small" id="btnInfoSup" type="button">Info sup</button>
   <button class="ghost btn-small" id="btnMode" type="button">Mode 1 par 1</button>
-  <div class="pill">v2.55</div>
+  <div class="pill">v2.56</div>
   <div class="pill auth-user hidden" id="authUserLabel"></div>
   <button class="ghost btn-small hidden" id="logoutBtn" type="button">Déconnexion</button>
 </div>
@@ -1238,21 +1239,6 @@ document.addEventListener("DOMContentLoaded", () => {
     <label><input data-nonikea="1" name="credence_nonikea" type="checkbox"/><span class="opt compact">NON IKEA</span></label>
 <label><input name="credence" type="radio" value="client"/><span class="opt">Installé par le client</span></label>
 <label><input name="credence" type="radio" value="pasde"/><span class="opt compact">Non souhaité</span></label>
-</div>
-</div>
-
-<!-- FINITIONS LATÉRALES -->
-<div class="row" data-appliance="Finitions latérales">
-<div class="label">
-<b>Finitions latérales</b>
-<small>Pose</small>
-</div>
-<div class="options compact-gap">
-<label><input class="listing-toggle" data-listing="1" name="finitions_listing" type="checkbox"/><span class="opt opt-listing compact">Listing</span></label>
-<label><input data-defmag="1" name="finitions_defmag" type="checkbox"/><span class="opt compact opt-defmag">À définir en mag</span></label>
-    <label><input data-nonikea="1" name="finitions_nonikea" type="checkbox"/><span class="opt compact">NON IKEA</span></label>
-<label><input name="finitions" type="radio" value="client"/><span class="opt">Installé par le client</span></label>
-<label><input name="finitions" type="radio" value="pasde"/><span class="opt compact">Non souhaité</span></label>
 </div>
 </div>
 
@@ -3144,6 +3130,7 @@ function formatWorkExportLine(sel, line){
 }
 
 // v2.55 : commentaires facultatifs sur les postes de dépose/enlèvement.
+// v2.56 : suppression de la question Finitions latérales.
 const DEPOSE_COMMENT_TARGETS = [
     "depose_cuisine",
     "depose_faience",

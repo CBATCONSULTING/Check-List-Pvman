@@ -350,6 +350,36 @@
             .work-comment-wrap{ justify-content:flex-start; }
             .work-comment-input{ width:100%; min-width:0; }
         }
+
+        /* v2.55 : commentaire facultatif pour les postes de dépose/enlèvement */
+        .depose-comment-wrap{
+            display:none;
+            flex:1 1 100%;
+            width:100%;
+            margin-top:6px;
+            justify-content:flex-end;
+        }
+        .depose-comment-wrap.show{ display:flex; }
+        .depose-comment-input{
+            width:min(100%, 430px);
+            min-width:260px;
+            border-radius:12px;
+            border:1px solid rgba(255,255,255,.14);
+            background:rgba(255,255,255,.06);
+            color:var(--text);
+            padding:9px 11px;
+            outline:none;
+            font-size:12px;
+        }
+        .depose-comment-input::placeholder{ color:rgba(255,255,255,.45); }
+        .depose-comment-input:focus{
+            border-color:rgba(147,197,253,.8);
+            box-shadow:0 0 0 2px rgba(59,130,246,.16);
+        }
+        @media(max-width:720px){
+            .depose-comment-wrap{ justify-content:flex-start; }
+            .depose-comment-input{ width:100%; min-width:0; }
+        }
 /* Chaque "bouton" est un label qui encapsule son input + son visuel */
         .options label{
             position: relative;
@@ -972,7 +1002,7 @@ document.addEventListener("DOMContentLoaded", () => {
   <button class="ghost btn-small" id="btnMemo" type="button">Mémo</button>
   <button class="ghost btn-small" id="btnInfoSup" type="button">Info sup</button>
   <button class="ghost btn-small" id="btnMode" type="button">Mode 1 par 1</button>
-  <div class="pill">v2.54</div>
+  <div class="pill">v2.55</div>
   <div class="pill auth-user hidden" id="authUserLabel"></div>
   <button class="ghost btn-small hidden" id="logoutBtn" type="button">Déconnexion</button>
 </div>
@@ -3113,6 +3143,67 @@ function formatWorkExportLine(sel, line){
     return comment ? `${base} — ${comment}` : base;
 }
 
+// v2.55 : commentaires facultatifs sur les postes de dépose/enlèvement.
+const DEPOSE_COMMENT_TARGETS = [
+    "depose_cuisine",
+    "depose_faience",
+    "depose_murets",
+    "enlevement_cuisine",
+    "enlevement_gravats"
+];
+
+function injectDeposeCommentInputs(){
+    DEPOSE_COMMENT_TARGETS.forEach(name => {
+        if (document.querySelector(`.depose-comment-wrap[data-depose-comment-for="${name}"]`)) return;
+
+        const fieldRow = document.querySelector(`.row[data-depose-input-for="${name}"]`);
+        const parentRow = document.querySelector(`.row[data-general="${name}"]`);
+        const host = (fieldRow || parentRow)?.querySelector(".options");
+        if (!host) return;
+
+        const wrap = document.createElement("div");
+        wrap.className = "depose-comment-wrap";
+        wrap.setAttribute("data-depose-comment-for", name);
+
+        const input = document.createElement("input");
+        input.type = "text";
+        input.className = "depose-comment-input";
+        input.name = `${name}_comment`;
+        input.setAttribute("data-depose-comment-input", "1");
+        input.setAttribute("data-depose-comment-for", name);
+        input.placeholder = "Commentaire dépose (optionnel)";
+        input.autocomplete = "off";
+
+        wrap.appendChild(input);
+        host.appendChild(wrap);
+    });
+}
+
+function syncDeposeCommentInputs(){
+    DEPOSE_COMMENT_TARGETS.forEach(name => {
+        const wrap = document.querySelector(`.depose-comment-wrap[data-depose-comment-for="${name}"]`);
+        const input = wrap?.querySelector('input[data-depose-comment-input="1"]');
+        if (!wrap || !input) return;
+
+        const show = travauxDeposeOui() && !travauxEnCoursOui() && getRadioValue(name) === "oui";
+        wrap.classList.toggle("show", show);
+        if (!show) input.value = "";
+    });
+}
+
+function getDeposeComment(name){
+    if (!name || getRadioValue(name) !== "oui") return "";
+    const input = document.querySelector(`input[data-depose-comment-input="1"][data-depose-comment-for="${name}"]`);
+    return (input?.value || "").trim();
+}
+
+function formatDeposeRecapLine(name, line){
+    const base = (line || "").trim();
+    if (!base) return "";
+    const comment = getDeposeComment(name);
+    return comment ? `${base} — ${comment}` : base;
+}
+
 function travauxEnCoursAnswered(){
     return !!document.querySelector('input[name="travaux_en_cours"]:checked');
 }
@@ -3294,18 +3385,18 @@ function getGeneralRecapLines(){
 
     if (travauxDeposeOui()) {
         const dc = generalInputValue("depose_cuisine_ml");
-        if (getRadioValue("depose_cuisine") === "oui" && dc) out.push(`${dc} ml dépose cuisine`);
+        if (getRadioValue("depose_cuisine") === "oui" && dc) out.push(formatDeposeRecapLine("depose_cuisine", `${dc} ml dépose cuisine`));
 
         const df = generalInputValue("depose_faience_ml");
-        if (getRadioValue("depose_faience") === "oui" && df) out.push(`${df} ml dépose faïence`);
+        if (getRadioValue("depose_faience") === "oui" && df) out.push(formatDeposeRecapLine("depose_faience", `${df} ml dépose faïence`));
 
         const dm = generalInputValue("depose_murets_ml");
-        if (getRadioValue("depose_murets") === "oui" && dm) out.push(`${dm} ml dépose murets`);
+        if (getRadioValue("depose_murets") === "oui" && dm) out.push(formatDeposeRecapLine("depose_murets", `${dm} ml dépose murets`));
 
-        if (getRadioValue("enlevement_cuisine") === "oui") out.push("Enlèvement cuisine");
+        if (getRadioValue("enlevement_cuisine") === "oui") out.push(formatDeposeRecapLine("enlevement_cuisine", "Enlèvement cuisine"));
 
         const gv = generalInputValue("enlevement_gravats_volume");
-        if (getRadioValue("enlevement_gravats") === "oui" && gv) out.push(`${gv} mètres cubes Enlèvement gravats`);
+        if (getRadioValue("enlevement_gravats") === "oui" && gv) out.push(formatDeposeRecapLine("enlevement_gravats", `${gv} mètres cubes Enlèvement gravats`));
     }
     return out;
 }
@@ -3616,6 +3707,8 @@ function getLuminairesPcExportLine(){
         syncMitigeurHeightInputs();
         injectWorkCommentInputs();
         syncWorkCommentInputs();
+        injectDeposeCommentInputs();
+        syncDeposeCommentInputs();
 
             const generalOnlyMode = document.body.classList.contains("general-step");
             if (generalOnlyMode) {

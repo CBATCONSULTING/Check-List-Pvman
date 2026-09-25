@@ -643,6 +643,29 @@
             border-color:rgba(147,197,253,.95);
         }
 
+        /* v2.61 : alerte évacuation hotte intégrable */
+        .attention-evac-wrap{
+            display:inline-flex;
+            align-items:center;
+        }
+        .attention-evac-btn{
+            min-height:36px;
+            padding:8px 12px;
+            border-radius:11px;
+            border:1px solid rgba(250,204,21,.95);
+            background:rgba(234,179,8,.22);
+            color:#fde047;
+            font-size:12px;
+            font-weight:900;
+            white-space:nowrap;
+            cursor:pointer;
+            box-shadow:0 0 0 1px rgba(250,204,21,.08) inset;
+        }
+        .attention-evac-btn:hover{
+            background:rgba(234,179,8,.36);
+            border-color:#fde047;
+        }
+
 /* --- Header right (toggle mode) --- */
         .header-right{
             display:flex;
@@ -1025,7 +1048,7 @@ document.addEventListener("DOMContentLoaded", () => {
   <button class="ghost btn-small" id="btnMemo" type="button">Mémo</button>
   <button class="ghost btn-small" id="btnInfoSup" type="button">Info sup</button>
   <button class="ghost btn-small" id="btnMode" type="button">Mode 1 par 1</button>
-  <div class="pill">v2.60</div>
+  <div class="pill">v2.61</div>
   <div class="pill auth-user hidden" id="authUserLabel"></div>
   <button class="ghost btn-small hidden" id="logoutBtn" type="button">Déconnexion</button>
 </div>
@@ -1357,6 +1380,7 @@ document.addEventListener("DOMContentLoaded", () => {
 </div>
 <div class="options compact-gap"><label><input class="listing-toggle" data-listing="1" data-listing-group="hotte" name="hotte_int_listing" type="checkbox"/><span class="opt opt-listing compact">Listing</span></label><label><input data-defmag="1" name="hotte_int_defmag" type="checkbox"/><span class="opt compact opt-defmag">À définir en mag</span></label>
     <label><input data-nonikea="1" name="hotte_int_nonikea" type="checkbox"/><span class="opt compact">NON IKEA</span></label>
+<label class="attention-evac-wrap" data-bottom-row="1"><button class="attention-evac-btn" id="hotteEvacAlertBtn" type="button">Attention évacuation</button></label>
 <label><input name="hotte_int" type="radio" value="client"/><span class="opt">Installé par le client</span></label>
 <label><input name="hotte_int" type="radio" value="pasde"/><span class="opt compact">Non souhaité</span></label>
 </div>
@@ -5116,5 +5140,18 @@ applyAlternatingRows();
         buildRecap();
 
     </script>
+
+<script>
+// v2.61 : rappel spécifique à la hotte intégrable.
+(() => {
+  const btn = document.getElementById("hotteEvacAlertBtn");
+  if (!btn) return;
+  btn.addEventListener("click", (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+    window.alert("ATTENTION, si hotte recyclage, prévoir suffisamment d'espace pour l'évacuation de l'air");
+  });
+})();
+</script>
 </body>
 </html>

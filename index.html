@@ -621,6 +621,28 @@
         }
         .extra-line::placeholder{color: rgba(255,255,255,.45);}
 
+        /* v2.60 : bouton schéma du réfrigérateur pose libre */
+        .appliance-title-row{
+            display:flex;
+            align-items:center;
+            gap:10px;
+            flex-wrap:wrap;
+        }
+        .frigo-schema-btn{
+            padding:6px 10px;
+            border-radius:10px;
+            border:1px solid rgba(96,165,250,.75);
+            background:rgba(37,99,235,.35);
+            color:#dbeafe;
+            font-size:12px;
+            font-weight:800;
+            white-space:nowrap;
+        }
+        .frigo-schema-btn:hover{
+            background:rgba(37,99,235,.58);
+            border-color:rgba(147,197,253,.95);
+        }
+
 /* --- Header right (toggle mode) --- */
         .header-right{
             display:flex;
@@ -1003,7 +1025,7 @@ document.addEventListener("DOMContentLoaded", () => {
   <button class="ghost btn-small" id="btnMemo" type="button">Mémo</button>
   <button class="ghost btn-small" id="btnInfoSup" type="button">Info sup</button>
   <button class="ghost btn-small" id="btnMode" type="button">Mode 1 par 1</button>
-  <div class="pill">v2.59</div>
+  <div class="pill">v2.60</div>
   <div class="pill auth-user hidden" id="authUserLabel"></div>
   <button class="ghost btn-small hidden" id="logoutBtn" type="button">Déconnexion</button>
 </div>
@@ -1481,12 +1503,16 @@ document.addEventListener("DOMContentLoaded", () => {
 <!-- RÉFRIGÉRATEUR POSE LIBRE -->
 <div class="row" data-appliance="Réfrigérateur pose libre" data-block="frigo">
 <div class="label">
+<div class="appliance-title-row">
 <b>Réfrigérateur pose libre</b>
+<button class="frigo-schema-btn" type="button" data-frigo-schema-url="https://static.wixstatic.com/media/9c09bd_b558c6ed9b8749faa4a956f1c8f90c12~mv2.png">Schéma porte frigo</button>
+</div>
 <small>Pose / encastrement</small>
 </div>
 <div class="options compact-gap"><label><input class="listing-toggle" data-listing="1" data-listing-group="frigo" name="frigo_libre_listing" type="checkbox"/><span class="opt opt-listing compact">Listing</span></label><label><input data-defmag="1" name="frigo_libre_defmag" type="checkbox"/><span class="opt compact opt-defmag">À définir en mag</span></label>
     <label><input data-nonikea="1" name="frigo_libre_nonikea" type="checkbox"/><span class="opt compact">NON IKEA</span></label>
 <label><input name="frigo_libre" type="radio" value="client"/><span class="opt">Installé par le client</span></label>
+<label data-bottom-row="1"><input data-frigo-inversion="1" name="frigo_libre_inversion" type="checkbox"/><span class="opt compact">Inverser sens porte</span></label>
 <label><input name="frigo_libre" type="radio" value="pasde"/><span class="opt compact">Non souhaité</span></label>
 <label><input data-sousplan="1" name="frigo_libre_sousplan" type="checkbox"/><span class="opt compact">Sous plan</span></label>
 <label class="technical-wrap">
@@ -2587,7 +2613,8 @@ function clearRowAllChoices(row){
         'input[type="checkbox"][data-defmag="1"],' +
         'input[type="checkbox"][data-nonikea="1"],' +
         'input[type="checkbox"][data-en2temps="1"],' +
-        'input[type="checkbox"][data-sousplan="1"]'
+        'input[type="checkbox"][data-sousplan="1"],' +
+        'input[type="checkbox"][data-frigo-inversion="1"]'
     ).forEach(i => i.checked = false);
     row.querySelectorAll('input[type="radio"]').forEach(i => i.checked = false);
 }
@@ -2969,6 +2996,9 @@ function applyTwoLineLayout(){
     extra.className = "optline extra";
 
     labels.forEach(lab => {
+      // Éléments explicitement demandés sur la ligne du bas (ex. inversion porte frigo)
+      if (lab.getAttribute("data-bottom-row") === "1") { bottom.appendChild(lab); return; }
+
       // largeur => ligne du haut
       if (lab.classList.contains("width-wrap")) { top.appendChild(lab); return; }
 
@@ -3620,6 +3650,17 @@ function getFrigoPcExportLine(){
     return formatWorkExportLine(sel, ((option && option.getAttribute("data-export")) || (option && option.textContent) || value).trim());
 }
 
+
+function getFrigoDoorReverseExportLine(){
+    const cb = document.querySelector('input[data-frigo-inversion="1"]');
+    if (!cb || !cb.checked) return "";
+    const row = cb.closest(".row");
+    if (!row) return "";
+    const pasde = row.querySelector('input[type="radio"][value="pasde"]:checked');
+    if (pasde) return "";
+    return "Inversion sens porte frigo";
+}
+
 function getCongelPcExportLine(){
     const sel = document.getElementById("congelPc");
     if (!sel || shouldHideChiffrageSelect(sel)) return "";
@@ -3930,6 +3971,7 @@ function getLuminairesPcExportLine(){
                 getMicroOndesPcExportLine(),
                 getLvProtectionExportLine(),
                 getFrigoPcExportLine(),
+                getFrigoDoorReverseExportLine(),
                 getCongelPcExportLine(),
                 getLlProtectionExportLine(),
                 getSlProtectionExportLine(),
@@ -4030,6 +4072,13 @@ const text = buildRecap();
             event.preventDefault();
             event.stopPropagation();
             openMemoImage(btn.getAttribute("data-memo-img-url"), btn.getAttribute("data-memo-img-label"));
+        });
+        document.addEventListener("click", (event) => {
+            const btn = event.target.closest?.(".frigo-schema-btn");
+            if (!btn) return;
+            event.preventDefault();
+            event.stopPropagation();
+            openMemoImage(btn.getAttribute("data-frigo-schema-url"), "Schéma porte frigo");
         });
         document.addEventListener("change", (e) => {
             if (e.target && e.target.matches && e.target.matches('input[data-memo-note="1"], input[data-info-note="1"]')) {
@@ -4224,10 +4273,12 @@ const text = buildRecap();
         const en2 = row.querySelector('input[type="checkbox"][data-en2temps="1"],' +
         'input[type="checkbox"][data-sousplan="1"]');
         const gaz = row.querySelector('input[type="checkbox"][data-gaz="1"]');
+        const frigoInversion = row.querySelector('input[type="checkbox"][data-frigo-inversion="1"]');
         if (listing) listing.checked = false;
         if (nonikea) nonikea.checked = false;
         if (en2) en2.checked = false;
         if (gaz) gaz.checked = false;
+        if (frigoInversion) frigoInversion.checked = false;
       }
 
             // ✅ Paires (data-block) : "on repart de 0"

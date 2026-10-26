@@ -643,7 +643,7 @@
             border-color:rgba(147,197,253,.95);
         }
 
-        /* v2.61 : alerte évacuation hotte intégrable */
+        /* v2.62 : alerte évacuation hotte intégrable */
         .attention-evac-wrap{
             display:inline-flex;
             align-items:center;
@@ -1048,7 +1048,7 @@ document.addEventListener("DOMContentLoaded", () => {
   <button class="ghost btn-small" id="btnMemo" type="button">Mémo</button>
   <button class="ghost btn-small" id="btnInfoSup" type="button">Info sup</button>
   <button class="ghost btn-small" id="btnMode" type="button">Mode 1 par 1</button>
-  <div class="pill">v2.61</div>
+  <div class="pill">v2.62</div>
   <div class="pill auth-user hidden" id="authUserLabel"></div>
   <button class="ghost btn-small hidden" id="logoutBtn" type="button">Déconnexion</button>
 </div>
@@ -1317,33 +1317,6 @@ document.addEventListener("DOMContentLoaded", () => {
 </label>
 </div>
 </div>
-<!-- PLAQUE DE CUISSON AVEC HOTTE INTÉGRÉE -->
-<div class="row" data-appliance="Plaque de cuisson - hotte intégrée">
-<div class="label">
-<b>Plaque de cuisson - hotte intégrée</b>
-<small>Pose + branchement</small>
-</div>
-<div class="options compact-gap"><label><input class="listing-toggle" data-listing="1" name="plaquehotte_listing" type="checkbox"/><span class="opt opt-listing compact">Listing</span></label><label><input data-defmag="1" name="plaquehotte_defmag" type="checkbox"/><span class="opt compact opt-defmag">À définir en mag</span></label>
-    <label><input data-nonikea="1" name="plaquehotte_nonikea" type="checkbox"/><span class="opt compact">NON IKEA</span></label>
-<label><input name="plaquehotte" type="radio" value="client"/><span class="opt">Installé par le client</span></label>
-<label><input name="plaquehotte" type="radio" value="pasde"/><span class="opt compact">Non souhaité</span></label>
-<label class="technical-wrap">
-  <select class="technical-select protection-select" data-protection-plaquehotte="1" id="plaqueHotteProtections" aria-label="Protections plaque de cuisson-hotte">
-    <option value="" selected disabled>Protections Plaque de cuisson-hotte</option>
-    <option value="ok">Inter diff Type A ok - Protection 32A ok - SC ok</option>
-    <option value="Inter diff Type A ok - Protection 32A ok - Dep SC 2,5m" data-export="Inter diff Type A ok - Protection 32A ok - Dep SC 2,5m">Inter diff Type A ok - Protection 32A ok - Dep SC 2,5m</option>
-    <option value="Inter diff Type A ok - Protection 32A ok - Dep SC 5m" data-export="Inter diff Type A ok - Protection 32A ok - Dep SC 5m">Inter diff Type A ok - Protection 32A ok - Dep SC 5m</option>
-    <option value="Inter diff Type A ok - Protection 32A ok - Dep SC 10m" data-export="Inter diff Type A ok - Protection 32A ok - Dep SC 10m">Inter diff Type A ok - Protection 32A ok - Dep SC 10m</option>
-    <option value="Inter diff Type A ok - Protection 32A ok - Dep SC 15m" data-export="Inter diff Type A ok - Protection 32A ok - Dep SC 15m">Inter diff Type A ok - Protection 32A ok - Dep SC 15m</option>
-    <option value="Manque inter diff Type A - Protection 32A ok - SC ok" data-export="Manque inter diff Type A - Protection 32A ok - SC ok">Manque inter diff Type A - Protection 32A ok - SC ok</option>
-    <option value="Manque inter diff Type A et protection 32A - Ligne SC 10m" data-export="Manque inter diff Type A et protection 32A - Ligne SC 10m">Manque inter diff Type A et protection 32A - Ligne SC 10m</option>
-    <option value="Manque inter diff Type A et protection 32A - Ligne SC 15m" data-export="Manque inter diff Type A et protection 32A - Ligne SC 15m">Manque inter diff Type A et protection 32A - Ligne SC 15m</option>
-    <option value="Manque inter diff Type A et protection 32A - Ligne SC 20m" data-export="Manque inter diff Type A et protection 32A - Ligne SC 20m">Manque inter diff Type A et protection 32A - Ligne SC 20m</option>
-    <option value="Manque inter diff Type A et protection 32A - Ligne SC 25m" data-export="Manque inter diff Type A et protection 32A - Ligne SC 25m">Manque inter diff Type A et protection 32A - Ligne SC 25m</option>
-  </select>
-</label>
-</div>
-</div>
 <!-- CUISINIÈRE / PIANO -->
 <div class="row" data-appliance="Cuisinière / Piano">
 <div class="label">
@@ -1358,6 +1331,33 @@ document.addEventListener("DOMContentLoaded", () => {
 <label class="technical-wrap">
   <select class="technical-select protection-select" data-protection-piano="1" id="pianoProtections" aria-label="Protections cuisinière-piano">
     <option value="" selected disabled>Protections Cuisinière-Piano</option>
+    <option value="ok">Inter diff Type A ok - Protection 32A ok - SC ok</option>
+    <option value="Inter diff Type A ok - Protection 32A ok - Dep SC 2,5m" data-export="Inter diff Type A ok - Protection 32A ok - Dep SC 2,5m">Inter diff Type A ok - Protection 32A ok - Dep SC 2,5m</option>
+    <option value="Inter diff Type A ok - Protection 32A ok - Dep SC 5m" data-export="Inter diff Type A ok - Protection 32A ok - Dep SC 5m">Inter diff Type A ok - Protection 32A ok - Dep SC 5m</option>
+    <option value="Inter diff Type A ok - Protection 32A ok - Dep SC 10m" data-export="Inter diff Type A ok - Protection 32A ok - Dep SC 10m">Inter diff Type A ok - Protection 32A ok - Dep SC 10m</option>
+    <option value="Inter diff Type A ok - Protection 32A ok - Dep SC 15m" data-export="Inter diff Type A ok - Protection 32A ok - Dep SC 15m">Inter diff Type A ok - Protection 32A ok - Dep SC 15m</option>
+    <option value="Manque inter diff Type A - Protection 32A ok - SC ok" data-export="Manque inter diff Type A - Protection 32A ok - SC ok">Manque inter diff Type A - Protection 32A ok - SC ok</option>
+    <option value="Manque inter diff Type A et protection 32A - Ligne SC 10m" data-export="Manque inter diff Type A et protection 32A - Ligne SC 10m">Manque inter diff Type A et protection 32A - Ligne SC 10m</option>
+    <option value="Manque inter diff Type A et protection 32A - Ligne SC 15m" data-export="Manque inter diff Type A et protection 32A - Ligne SC 15m">Manque inter diff Type A et protection 32A - Ligne SC 15m</option>
+    <option value="Manque inter diff Type A et protection 32A - Ligne SC 20m" data-export="Manque inter diff Type A et protection 32A - Ligne SC 20m">Manque inter diff Type A et protection 32A - Ligne SC 20m</option>
+    <option value="Manque inter diff Type A et protection 32A - Ligne SC 25m" data-export="Manque inter diff Type A et protection 32A - Ligne SC 25m">Manque inter diff Type A et protection 32A - Ligne SC 25m</option>
+  </select>
+</label>
+</div>
+</div>
+<!-- PLAQUE DE CUISSON AVEC HOTTE INTÉGRÉE -->
+<div class="row" data-appliance="Plaque de cuisson - hotte intégrée">
+<div class="label">
+<b>Plaque de cuisson - hotte intégrée</b>
+<small>Pose + branchement</small>
+</div>
+<div class="options compact-gap"><label><input class="listing-toggle" data-listing="1" name="plaquehotte_listing" type="checkbox"/><span class="opt opt-listing compact">Listing</span></label><label><input data-defmag="1" name="plaquehotte_defmag" type="checkbox"/><span class="opt compact opt-defmag">À définir en mag</span></label>
+    <label><input data-nonikea="1" name="plaquehotte_nonikea" type="checkbox"/><span class="opt compact">NON IKEA</span></label>
+<label><input name="plaquehotte" type="radio" value="client"/><span class="opt">Installé par le client</span></label>
+<label><input name="plaquehotte" type="radio" value="pasde"/><span class="opt compact">Non souhaité</span></label>
+<label class="technical-wrap">
+  <select class="technical-select protection-select" data-protection-plaquehotte="1" id="plaqueHotteProtections" aria-label="Protections plaque de cuisson-hotte">
+    <option value="" selected disabled>Protections Plaque de cuisson-hotte</option>
     <option value="ok">Inter diff Type A ok - Protection 32A ok - SC ok</option>
     <option value="Inter diff Type A ok - Protection 32A ok - Dep SC 2,5m" data-export="Inter diff Type A ok - Protection 32A ok - Dep SC 2,5m">Inter diff Type A ok - Protection 32A ok - Dep SC 2,5m</option>
     <option value="Inter diff Type A ok - Protection 32A ok - Dep SC 5m" data-export="Inter diff Type A ok - Protection 32A ok - Dep SC 5m">Inter diff Type A ok - Protection 32A ok - Dep SC 5m</option>
@@ -2809,6 +2809,21 @@ function clearEn2TempsForRowOrPair(row){
             if (cb) cb.checked = false;
         }
 
+function clearCookingDetailsMadeIrrelevantByPiano(){
+    if (!isPianoActiveForRules()) return;
+
+    ["Plaque de cuisson - hotte intégrée", "Four"].forEach(appliance => {
+        const row = document.querySelector(`.row[data-appliance="${appliance}"]`);
+        if (!row) return;
+        row.querySelectorAll('input[type="radio"], input[type="checkbox"]').forEach(inp => { inp.checked = false; });
+        row.querySelectorAll('select').forEach(sel => {
+            sel.value = "";
+            sel.classList.remove("has-value", "attention");
+        });
+        row.querySelectorAll('input[data-work-comment-input="1"], input[data-extra="1"]').forEach(inp => { inp.value = ""; });
+    });
+}
+
 function updatePlaqueHotteConstraint() {
             // On ne "bloque" plus les autres choix : on efface simplement les conflits.
             // (ça permet de revenir en arrière si le client change d'avis)
@@ -2851,6 +2866,8 @@ function updatePlaqueHotteConstraint() {
 
     const isPasDe = (sel) => sel && sel.value === "pasde";
     if (isPasDe(selA) || isPasDe(selB)) {
+        // v2.62 : ne pas encombrer le récap avec certains appareils absents.
+        if (pair.base === "Congélateur" || pair.base === "Lave-linge") return null;
         return `PAS DE ${pair.base.toLowerCase()} souhaité(e)`;
     }
 
@@ -3567,6 +3584,10 @@ function syncTechnicalSelectVisualState(){
     });
 }
 
+function isPianoActiveForRules(){
+    return isPresentForExclusion("piano", "piano_nonikea", "piano_listing");
+}
+
 function getPlanDecoupesExportLine(){
     const sel = document.getElementById("planDecoupesTechniques");
     if (!sel || shouldHideChiffrageSelect(sel)) return "";
@@ -3580,6 +3601,7 @@ function getPlanDecoupesExportLine(){
 }
 
 function getPlaqueProtectionExportLine(){
+    if (isPianoActiveForRules()) return "";
     const sel = document.getElementById("plaqueProtections");
     if (!sel || shouldHideChiffrageSelect(sel)) return "";
 
@@ -3593,6 +3615,7 @@ function getPlaqueProtectionExportLine(){
 
 
 function getPlaqueHotteProtectionExportLine(){
+    if (isPianoActiveForRules()) return "";
     const sel = document.getElementById("plaqueHotteProtections");
     if (!sel || shouldHideChiffrageSelect(sel)) return "";
 
@@ -3627,6 +3650,7 @@ function getHottePcExportLine(){
 }
 
 function getFourProtectionExportLine(){
+    if (isPianoActiveForRules()) return "";
     const sel = document.getElementById("fourProtections");
     if (!sel || shouldHideChiffrageSelect(sel)) return "";
 
@@ -3883,12 +3907,10 @@ function getLuminairesPcExportLine(){
                 if (!label) return;
 
                 // ✅ Règles "cuisson" (éviter des lignes incohérentes dans le récap)
-                // - Si Piano sélectionné => on ne sort pas Plaque / Four / Plaque+Hotte
-                //   (mais on conserve les lignes explicitement marquées "Non souhaité")
+                // v2.62 : si une Cuisinière / Piano est choisie, Plaque / Four / Plaque+Hotte
+                // deviennent sans objet, y compris leurs anciennes mentions "Non souhaité".
                 if (pianoActive) {
-                    if (label === "Plaque de cuisson" && !pasdePlaque) return;
-                    if (label === "Four" && !pasdeFour) return;
-                    if (label === "Plaque de cuisson - hotte intégrée" && !pasdePlaqueHotte) return;
+                    if (label === "Plaque de cuisson" || label === "Four" || label === "Plaque de cuisson - hotte intégrée") return;
                 }
                 // - Si Plaque OU Plaque+Hotte sélectionnée => on ne sort pas Piano
                 //   (mais on conserve la ligne si elle est explicitement "Non souhaité")
@@ -3957,6 +3979,8 @@ function getLuminairesPcExportLine(){
 
                 if (checked) {
                     if (checked.value === "pasde") {
+                        // v2.62 : ne pas afficher l'absence de sèche-linge dans les notes.
+                        if (label === "Sèche-linge") return;
                         lines.push(`PAS DE ${formatForPasDe(label)} souhaité(e)`);
                     } else {
                         // seul autre choix : client
@@ -4536,11 +4560,22 @@ function applyAlternatingRows() {
             const generalRows = step.filter(r => r && r.hasAttribute && r.hasAttribute("data-general"));
             if (generalRows.length && generalRows.every(r => isGeneralRowHidden(r))) return true;
 
-            // Les alternatives "Plaque de cuisson - hotte intégrée" et "Cuisinière / Piano"
-            // ne doivent être proposées que si la plaque de cuisson simple est marquée "Non souhaité".
-            if (stepHasAppliance(step, "Plaque de cuisson - hotte intégrée") || stepHasAppliance(step, "Cuisinière / Piano")) {
+            const pianoActive = isPianoActiveForRules();
+            const pianoPasDe = !!document.querySelector('input[name="piano"][value="pasde"]:checked');
+
+            // v2.62 : après "Plaque = Non souhaité", on propose d'abord Cuisinière / Piano.
+            if (stepHasAppliance(step, "Cuisinière / Piano")) {
                 return !isPlaqueNonSouhaiteeOn();
             }
+
+            // La plaque avec hotte intégrée n'est pertinente que si la cuisinière/piano est aussi absente.
+            if (stepHasAppliance(step, "Plaque de cuisson - hotte intégrée")) {
+                return !isPlaqueNonSouhaiteeOn() || !pianoPasDe || pianoActive;
+            }
+
+            // Une cuisinière/piano possède déjà son four : inutile de poser la question Four.
+            if (stepHasAppliance(step, "Four") && pianoActive) return true;
+
             return false;
         }
         function visibleStepIndices() {
@@ -5142,7 +5177,19 @@ applyAlternatingRows();
     </script>
 
 <script>
-// v2.61 : rappel spécifique à la hotte intégrable.
+// v2.62 : si le technicien choisit une Cuisinière / Piano,
+// on nettoie les anciennes réponses devenues sans objet (Plaque+Hotte / Four).
+document.addEventListener("change", (e) => {
+    const row = e.target && e.target.closest ? e.target.closest('.row[data-appliance="Cuisinière / Piano"]') : null;
+    if (!row) return;
+    clearCookingDetailsMadeIrrelevantByPiano();
+    syncChiffrageSelectAvailability();
+    syncTechnicalSelectVisualState();
+    buildRecap();
+    updateWizardNavState();
+});
+
+// v2.62 : rappel spécifique à la hotte intégrable.
 (() => {
   const btn = document.getElementById("hotteEvacAlertBtn");
   if (!btn) return;

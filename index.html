@@ -980,7 +980,7 @@
         .client-identity input:focus{border-color:#93c5fd;box-shadow:0 0 0 3px rgba(59,130,246,.22)}
         .client-identity input::placeholder{color:rgba(191,219,254,.55);font-weight:500}
         @media(max-width:620px){.client-identity{align-items:stretch;flex-direction:column;gap:7px}.client-identity label{white-space:normal}.client-identity input{width:100%}}
-        /* v2.65 : proposition client + sauvegarde locale automatique */
+        /* v2.66 : proposition client + sauvegarde locale automatique */
         .client-save-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
         .client-save-actions button{padding:9px 11px;font-size:12px;white-space:nowrap}
         .client-save-status{font-size:12px;color:#93c5fd;min-width:150px}
@@ -989,7 +989,7 @@
         @media(max-width:620px){.client-save-actions{width:100%}.client-save-actions button{flex:0 0 auto}.client-save-status{width:100%}}
 
 
-        /* v2.65 : sélecteur Mes clients Extrabat, identique au générateur de devis */
+        /* v2.66 : sélecteur Mes clients Extrabat, identique au générateur de devis */
         .extrabat-clients{
             margin:0 0 14px;padding:14px;border:1px solid rgba(96,165,250,.48);border-radius:15px;
             background:rgba(37,99,235,.10);box-shadow:0 8px 24px rgba(0,0,0,.14);
@@ -1079,7 +1079,7 @@ document.addEventListener("DOMContentLoaded", () => {
   <button class="ghost btn-small" id="btnMemo" type="button">Mémo</button>
   <button class="ghost btn-small" id="btnInfoSup" type="button">Info sup</button>
   <button class="ghost btn-small" id="btnMode" type="button">Mode 1 par 1</button>
-  <div class="pill">v2.65</div>
+  <div class="pill">v2.66</div>
   <div class="pill auth-user hidden" id="authUserLabel"></div>
   <button class="ghost btn-small hidden" id="logoutBtn" type="button">Déconnexion</button>
 </div>
@@ -5225,7 +5225,7 @@ applyAlternatingRows();
     </script>
 
 <script>
-// v2.65 : sauvegarde locale automatique, client par client.
+// v2.66 : sauvegarde locale automatique, client par client.
 (() => {
   const INDEX_KEY = "CBAT_CHECKLIST_CLIENTS_V1";
   const SAVE_PREFIX = "CBAT_CHECKLIST_SAVE_V1::";
@@ -5355,7 +5355,7 @@ applyAlternatingRows();
 
   function snapshotChecklist(){
     return {
-      version: "2.65",
+      version: "2.66",
       client: cleanName(clientInput?.value),
       savedAt: new Date().toISOString(),
       wizardIndex: (typeof wizardIndex !== "undefined" ? wizardIndex : 0),
@@ -5381,9 +5381,10 @@ applyAlternatingRows();
       refreshClientSuggestions();
       if (normalizedName(clientInput?.value) === normalizedName(name)) {
         const now = new Date(payload.savedAt);
-        setSaveStatus(`Sauvegardé automatiquement · ${now.toLocaleTimeString("fr-FR", {hour:"2-digit", minute:"2-digit"})}`, "ok");
+        setSaveStatus(`Sauvegardé localement · ${now.toLocaleTimeString("fr-FR", {hour:"2-digit", minute:"2-digit"})}`, "ok");
         if (loadBtn) loadBtn.disabled = false;
       }
+      try { window.CBAT_CHECKLIST_CLOUD?.scheduleSave?.(payload); } catch(e) {}
     } catch(error){
       console.error("Sauvegarde checklist impossible", error);
       setSaveStatus("Sauvegarde impossible", "warn");
@@ -5515,8 +5516,214 @@ applyAlternatingRows();
     updateLoadButton();
   }, 0);
 
-  // Expose seulement ce qui peut être utile aux évolutions futures.
-  window.CBAT_CHECKLIST_STORAGE = { save: saveChecklistNow, load: loadChecklistForClient, refreshClients: refreshClientSuggestions };
+  function restoreChecklistPayload(payload, preferredName=""){
+    const clean = cleanName(payload?.client || preferredName);
+    if (!payload || !payload.fields || !clean) return false;
+    restoringChecklist = true;
+    try {
+      activeSaveClient = clean;
+      if (clientInput) clientInput.value = clean;
+      if (typeof updateClientIdentity === "function") updateClientIdentity();
+      try { injectExtraInputs(); injectNonIkeaLengthInputs(); injectMitigeurHeightInputs(); injectWidthSelectors(); injectWorkCommentInputs(); injectDeposeCommentInputs(); } catch(e){}
+      assignSaveKeys();
+      document.querySelectorAll("#list [data-checklist-save-key]").forEach(el => {
+        const saved = payload.fields[el.dataset.checklistSaveKey];
+        if (!saved) return;
+        if (el.type === "radio" || el.type === "checkbox") el.checked = !!saved.checked;
+        else el.value = saved.value ?? "";
+      });
+      if (typeof memoState !== "undefined") restoreObject(memoState, payload.memoState || {});
+      if (typeof infoSupState !== "undefined") restoreObject(infoSupState, payload.infoSupState || {});
+      if (typeof infoSupValidated !== "undefined") infoSupValidated = !!payload.infoSupValidated;
+      if (typeof finalButtonPressed !== "undefined") finalButtonPressed = !!payload.finalButtonPressed;
+      try {
+        updatePlaqueHotteConstraint(); syncGazChiffrageOptions(); syncNonIkeaLengthInputs(); syncMitigeurHeightInputs();
+        syncWidthSelectAvailability(); syncChiffrageSelectAvailability(); syncWorkCommentInputs(); syncDeposeCommentInputs();
+        syncOtherNonIkeaLabels(); buildRecap();
+        if (typeof renderMemoItems === "function") renderMemoItems("memo");
+        if (typeof wizardSteps !== "undefined") {
+          wizardSteps = buildWizardSteps();
+          const requested = Number.isInteger(payload.wizardIndex) ? payload.wizardIndex : 0;
+          wizardIndex = clampToVisible(Math.max(0, Math.min(requested, wizardSteps.length - 1)), +1);
+          showWizardStep(wizardIndex);
+        }
+        updateCopyVisibility();
+      } catch(error){ console.error("Restauration Firebase partielle checklist", error); }
+      // On garde aussi une copie locale de la version Firebase chargée.
+      try {
+        localStorage.setItem(storageKey(clean), JSON.stringify(payload));
+        const items = readIndex().filter(item => normalizedName(item?.name) !== normalizedName(clean));
+        items.push({name: clean, updatedAt: payload.savedAt || new Date().toISOString()});
+        writeIndex(items); refreshClientSuggestions();
+      } catch(e){}
+      return true;
+    } finally { restoringChecklist = false; }
+  }
+
+  // API interne utilisée par le sélecteur Extrabat et la sauvegarde Firebase.
+  window.CBAT_CHECKLIST_STORAGE = {
+    save: saveChecklistNow,
+    load: loadChecklistForClient,
+    restorePayload: restoreChecklistPayload,
+    snapshot: snapshotChecklist,
+    refreshClients: refreshClientSuggestions,
+    localPayloadFor: (name) => { try { return JSON.parse(localStorage.getItem(storageKey(cleanName(name))) || "null"); } catch(e){ return null; } },
+    setStatus: setSaveStatus
+  };
+})();
+</script>
+
+<script>
+// v2.66 : sauvegarde Firebase partagée des checklists PVMan.
+(() => {
+  const COLLECTION = "pvman_checklists";
+  let cloudTimer = null;
+  let writeSequence = 0;
+  let cloudBusy = false;
+
+  const clean = v => String(v || "").trim();
+  const safeId = v => clean(v).replace(/[^a-zA-Z0-9_.-]+/g, "_").replace(/^_+|_+$/g, "").slice(0, 180);
+  function selectedClient(){ return window.pvmanSelectedClient || null; }
+  function docIdFor(r){
+    if(!r?.clientId) return "";
+    return [r.clientId, r.appointmentId || "rdv", r.serviceId || r.orderNo || r.date || "service"].map(safeId).filter(Boolean).join("__");
+  }
+  function docUrl(r){
+    const project = firebase?.app?.().options?.projectId;
+    const id = docIdFor(r);
+    if(!project || !id) return "";
+    return `https://firestore.googleapis.com/v1/projects/${encodeURIComponent(project)}/databases/licences/documents/${COLLECTION}/${encodeURIComponent(id)}`;
+  }
+  function fieldString(v){ return {stringValue:String(v ?? "")}; }
+  function fieldBool(v){ return {booleanValue:!!v}; }
+  function fieldInt(v){ return {integerValue:String(Number.isFinite(Number(v)) ? Math.trunc(Number(v)) : 0)}; }
+  function decodeValue(v){
+    if(v==null) return null;
+    if('nullValue' in v) return null;
+    if('stringValue' in v) return v.stringValue;
+    if('timestampValue' in v) return v.timestampValue;
+    if('booleanValue' in v) return v.booleanValue;
+    if('integerValue' in v) return Number(v.integerValue);
+    if('doubleValue' in v) return Number(v.doubleValue);
+    if('arrayValue' in v) return (v.arrayValue.values||[]).map(decodeValue);
+    if('mapValue' in v) return Object.fromEntries(Object.entries(v.mapValue.fields||{}).map(([k,x])=>[k,decodeValue(x)]));
+    return null;
+  }
+  function status(text, type=""){
+    try { window.CBAT_CHECKLIST_STORAGE?.setStatus?.(text, type); } catch(e){}
+  }
+
+  async function savePayload(payload){
+    const r = selectedClient();
+    const user = firebase?.auth?.().currentUser;
+    const url = docUrl(r);
+    if(!r?.clientId || !user || !url || !payload?.fields) return false;
+    const seq = ++writeSequence;
+    cloudBusy = true;
+    status("☁ Enregistrement Firebase…");
+    try{
+      const token = await user.getIdToken();
+      const body = {
+        fields: {
+          schemaVersion: fieldInt(1),
+          formVersion: fieldString(payload.version || "2.66"),
+          clientName: fieldString(payload.client || ""),
+          clientId: fieldString(r.clientId || ""),
+          appointmentId: fieldString(r.appointmentId || ""),
+          serviceId: fieldString(r.serviceId || ""),
+          orderNo: fieldString(r.orderNo || ""),
+          appointmentDate: fieldString(r.date || ""),
+          appointmentTime: fieldString(r.time || ""),
+          pvmanEmail: fieldString(r.pvmanEmail || ""),
+          ownerUid: fieldString(user.uid || ""),
+          ownerEmail: fieldString(user.email || ""),
+          savedAt: fieldString(payload.savedAt || new Date().toISOString()),
+          completed: fieldBool(!!payload.finalButtonPressed),
+          payloadJson: fieldString(JSON.stringify(payload))
+        }
+      };
+      const response = await fetch(url, {
+        method:"PATCH",
+        headers:{Authorization:`Bearer ${token}`, "Content-Type":"application/json"},
+        body:JSON.stringify(body),
+        cache:"no-store"
+      });
+      let result={}; try{ result=await response.json(); }catch(e){}
+      if(!response.ok){
+        const msg = response.status===403 ? "écriture Firebase non autorisée" : `Firebase HTTP ${response.status}`;
+        throw Error(result?.error?.message || msg);
+      }
+      if(seq===writeSequence){
+        const d = new Date(payload.savedAt || Date.now());
+        status(`☁ Firebase enregistré · ${d.toLocaleTimeString("fr-FR", {hour:"2-digit",minute:"2-digit"})}`, "ok");
+      }
+      return true;
+    }catch(e){
+      console.error("Sauvegarde Firebase checklist", e);
+      if(seq===writeSequence) status("Sauvegarde locale OK · Firebase indisponible", "warn");
+      return false;
+    }finally{ cloudBusy=false; }
+  }
+
+  function scheduleSave(payload=null, delay=1200){
+    const r = selectedClient();
+    if(!r?.clientId) return;
+    clearTimeout(cloudTimer);
+    cloudTimer=setTimeout(()=>{
+      const snap = payload || window.CBAT_CHECKLIST_STORAGE?.snapshot?.();
+      if(snap) savePayload(snap);
+    }, delay);
+  }
+
+  async function readSelected(){
+    const r = selectedClient();
+    const user = firebase?.auth?.().currentUser;
+    const url = docUrl(r);
+    if(!r?.clientId || !user || !url) return null;
+    try{
+      status("☁ Recherche d’une checklist enregistrée…");
+      const token=await user.getIdToken();
+      const response=await fetch(url,{headers:{Authorization:`Bearer ${token}`},cache:"no-store"});
+      if(response.status===404) return null;
+      const body=await response.json();
+      if(!response.ok) throw Error(body?.error?.message || `Firebase HTTP ${response.status}`);
+      const data=decodeValue({mapValue:{fields:body.fields||{}}});
+      if(!data?.payloadJson) return null;
+      const payload=JSON.parse(data.payloadJson);
+      payload.__cloudMeta={savedAt:data.savedAt||payload.savedAt||"", ownerEmail:data.ownerEmail||"", docId:docIdFor(r)};
+      return payload;
+    }catch(e){
+      console.error("Lecture Firebase checklist",e);
+      status("Firebase indisponible · reprise locale possible", "warn");
+      return null;
+    }
+  }
+
+  async function loadSelectedClient(){
+    const r=selectedClient();
+    if(!r?.clientId) return false;
+    const name=clean(document.getElementById("clientIdentity")?.value);
+    const cloud=await readSelected();
+    const local=window.CBAT_CHECKLIST_STORAGE?.localPayloadFor?.(name) || null;
+    let chosen=null, source="";
+    if(cloud && local){
+      const ct=Date.parse(cloud.savedAt||cloud.__cloudMeta?.savedAt||0)||0;
+      const lt=Date.parse(local.savedAt||0)||0;
+      if(ct>=lt){ chosen=cloud; source="Firebase"; } else { chosen=local; source="locale"; }
+    }else if(cloud){ chosen=cloud; source="Firebase"; }
+    else if(local){ chosen=local; source="locale"; }
+    if(!chosen){ status("Nouveau client · sauvegarde Firebase automatique", "warn"); return false; }
+    const ok=!!window.CBAT_CHECKLIST_STORAGE?.restorePayload?.(chosen,name);
+    if(ok){
+      const d=new Date(chosen.savedAt||Date.now());
+      status(`Reprise ${source} · ${d.toLocaleString("fr-FR", {dateStyle:"short",timeStyle:"short"})}`, "ok");
+      // Si la copie locale était la plus récente, on la pousse ensuite vers Firebase.
+      if(source==="locale") scheduleSave(chosen,250);
+    }
+    return ok;
+  }
+
+  window.CBAT_CHECKLIST_CLOUD={scheduleSave, saveNow:()=>savePayload(window.CBAT_CHECKLIST_STORAGE?.snapshot?.()), loadSelectedClient, docId:()=>docIdFor(selectedClient())};
 })();
 </script>
 
@@ -5557,7 +5764,7 @@ document.addEventListener("change", (e) => {
 
 
 <script>
-// v2.65 : clients Extrabat (même source et mêmes filtres que le générateur de devis IKEA).
+// v2.66 : clients Extrabat (même source et mêmes filtres que le générateur de devis IKEA).
 (()=>{
   const period=document.getElementById('pvPeriod');
   const search=document.getElementById('pvSearch');
@@ -5625,25 +5832,25 @@ document.addEventListener("change", (e) => {
     }catch(e){ console.warn('Réinitialisation client partielle',e); }
   }
 
-  function useClient(r){
+  async function useClient(r){
     const name=String(r.name||r.label||'').trim();
     if(!name) return;
     const previous=String(clientInput.value||'').trim();
     if(previous && norm(previous)!==norm(name)){
       if(!confirm('Changer de client ? La checklist actuelle sera sauvegardée avant le changement.')) return;
-      try{ window.CBAT_CHECKLIST_STORAGE?.save?.(); }catch(e){}
+      try{ window.CBAT_CHECKLIST_STORAGE?.save?.(); window.CBAT_CHECKLIST_CLOUD?.saveNow?.(); }catch(e){}
     }
     window.pvmanSelectedClient={clientId:r.clientId,appointmentId:r.id,serviceId:r.serviceId,orderNo:r.orderNo||'',pvmanEmail:r.pvmanEmail,date:r.date,time:r.time,address:r.address||''};
     clientInput.value=name;
     clientInput.dispatchEvent(new Event('input',{bubbles:true}));
 
+    if(previous && norm(previous)!==norm(name)) clearQuestionnaireForNewClient();
     let loaded=false;
-    try{ loaded=!!window.CBAT_CHECKLIST_STORAGE?.load?.(name); }catch(e){}
+    try{ loaded=!!(await window.CBAT_CHECKLIST_CLOUD?.loadSelectedClient?.()); }catch(e){}
     if(!loaded){
-      if(previous && norm(previous)!==norm(name)) clearQuestionnaireForNewClient();
       clientInput.dispatchEvent(new Event('change',{bubbles:true}));
+      setStatus('Client sélectionné : '+name+' — réf. Extrabat '+r.clientId+' · nouvelle checklist');
     }
-    setStatus((loaded?'Checklist reprise : ':'Client sélectionné : ')+name+' — réf. Extrabat '+r.clientId);
     results.replaceChildren();
   }
 

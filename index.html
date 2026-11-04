@@ -980,7 +980,7 @@
         .client-identity input:focus{border-color:#93c5fd;box-shadow:0 0 0 3px rgba(59,130,246,.22)}
         .client-identity input::placeholder{color:rgba(191,219,254,.55);font-weight:500}
         @media(max-width:620px){.client-identity{align-items:stretch;flex-direction:column;gap:7px}.client-identity label{white-space:normal}.client-identity input{width:100%}}
-        /* v2.66 : proposition client + sauvegarde locale automatique */
+        /* v2.67 : proposition client + sauvegarde locale automatique */
         .client-save-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
         .client-save-actions button{padding:9px 11px;font-size:12px;white-space:nowrap}
         .client-save-status{font-size:12px;color:#93c5fd;min-width:150px}
@@ -989,7 +989,7 @@
         @media(max-width:620px){.client-save-actions{width:100%}.client-save-actions button{flex:0 0 auto}.client-save-status{width:100%}}
 
 
-        /* v2.66 : sélecteur Mes clients Extrabat, identique au générateur de devis */
+        /* v2.67 : sélecteur Mes clients Extrabat, identique au générateur de devis */
         .extrabat-clients{
             margin:0 0 14px;padding:14px;border:1px solid rgba(96,165,250,.48);border-radius:15px;
             background:rgba(37,99,235,.10);box-shadow:0 8px 24px rgba(0,0,0,.14);
@@ -1079,7 +1079,7 @@ document.addEventListener("DOMContentLoaded", () => {
   <button class="ghost btn-small" id="btnMemo" type="button">Mémo</button>
   <button class="ghost btn-small" id="btnInfoSup" type="button">Info sup</button>
   <button class="ghost btn-small" id="btnMode" type="button">Mode 1 par 1</button>
-  <div class="pill">v2.66</div>
+  <div class="pill">v2.67</div>
   <div class="pill auth-user hidden" id="authUserLabel"></div>
   <button class="ghost btn-small hidden" id="logoutBtn" type="button">Déconnexion</button>
 </div>
@@ -5225,7 +5225,7 @@ applyAlternatingRows();
     </script>
 
 <script>
-// v2.66 : sauvegarde locale automatique, client par client.
+// v2.67 : sauvegarde locale automatique, client par client.
 (() => {
   const INDEX_KEY = "CBAT_CHECKLIST_CLIENTS_V1";
   const SAVE_PREFIX = "CBAT_CHECKLIST_SAVE_V1::";
@@ -5355,7 +5355,7 @@ applyAlternatingRows();
 
   function snapshotChecklist(){
     return {
-      version: "2.66",
+      version: "2.67",
       client: cleanName(clientInput?.value),
       savedAt: new Date().toISOString(),
       wizardIndex: (typeof wizardIndex !== "undefined" ? wizardIndex : 0),
@@ -5574,7 +5574,7 @@ applyAlternatingRows();
 </script>
 
 <script>
-// v2.66 : sauvegarde Firebase partagée des checklists PVMan.
+// v2.67 : sauvegarde Firebase partagée des checklists PVMan.
 (() => {
   const COLLECTION = "pvman_checklists";
   let cloudTimer = null;
@@ -5626,7 +5626,7 @@ applyAlternatingRows();
       const body = {
         fields: {
           schemaVersion: fieldInt(1),
-          formVersion: fieldString(payload.version || "2.66"),
+          formVersion: fieldString(payload.version || "2.67"),
           clientName: fieldString(payload.client || ""),
           clientId: fieldString(r.clientId || ""),
           appointmentId: fieldString(r.appointmentId || ""),
@@ -5660,7 +5660,10 @@ applyAlternatingRows();
       return true;
     }catch(e){
       console.error("Sauvegarde Firebase checklist", e);
-      if(seq===writeSequence) status("Sauvegarde locale OK · Firebase indisponible", "warn");
+      if(seq===writeSequence) {
+        const detail = String(e?.message || "erreur inconnue").replace(/\s+/g," ").trim();
+        status(`Sauvegarde locale OK · Firebase refusé : ${detail}`, "warn");
+      }
       return false;
     }finally{ cloudBusy=false; }
   }
@@ -5694,7 +5697,8 @@ applyAlternatingRows();
       return payload;
     }catch(e){
       console.error("Lecture Firebase checklist",e);
-      status("Firebase indisponible · reprise locale possible", "warn");
+      const detail = String(e?.message || "erreur inconnue").replace(/\s+/g," ").trim();
+      status(`Lecture Firebase impossible : ${detail} · reprise locale possible`, "warn");
       return null;
     }
   }
@@ -5764,7 +5768,7 @@ document.addEventListener("change", (e) => {
 
 
 <script>
-// v2.66 : clients Extrabat (même source et mêmes filtres que le générateur de devis IKEA).
+// v2.67 : clients Extrabat (même source et mêmes filtres que le générateur de devis IKEA).
 (()=>{
   const period=document.getElementById('pvPeriod');
   const search=document.getElementById('pvSearch');

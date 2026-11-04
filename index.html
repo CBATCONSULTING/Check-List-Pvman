@@ -980,7 +980,7 @@
         .client-identity input:focus{border-color:#93c5fd;box-shadow:0 0 0 3px rgba(59,130,246,.22)}
         .client-identity input::placeholder{color:rgba(191,219,254,.55);font-weight:500}
         @media(max-width:620px){.client-identity{align-items:stretch;flex-direction:column;gap:7px}.client-identity label{white-space:normal}.client-identity input{width:100%}}
-        /* v2.63 : proposition client + sauvegarde locale automatique */
+        /* v2.64 : proposition client + sauvegarde locale automatique */
         .client-save-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
         .client-save-actions button{padding:9px 11px;font-size:12px;white-space:nowrap}
         .client-save-status{font-size:12px;color:#93c5fd;min-width:150px}
@@ -1055,7 +1055,7 @@ document.addEventListener("DOMContentLoaded", () => {
   <button class="ghost btn-small" id="btnMemo" type="button">Mémo</button>
   <button class="ghost btn-small" id="btnInfoSup" type="button">Info sup</button>
   <button class="ghost btn-small" id="btnMode" type="button">Mode 1 par 1</button>
-  <div class="pill">v2.63</div>
+  <div class="pill">v2.64</div>
   <div class="pill auth-user hidden" id="authUserLabel"></div>
   <button class="ghost btn-small hidden" id="logoutBtn" type="button">Déconnexion</button>
 </div>
@@ -1065,7 +1065,7 @@ document.addEventListener("DOMContentLoaded", () => {
   <input id="clientIdentity" type="text" autocomplete="off" list="savedClientList" placeholder="Ex. DUPONT — Paris 15" />
   <datalist id="savedClientList"></datalist>
   <div class="client-save-actions">
-    <button class="ghost" id="loadClientChecklistBtn" type="button" disabled>Charger</button>
+    <button class="ghost" id="loadClientChecklistBtn" type="button">Charger</button>
     <span class="client-save-status" id="clientSaveStatus">Saisir le nom du client</span>
   </div>
 </div>
@@ -5189,7 +5189,7 @@ applyAlternatingRows();
     </script>
 
 <script>
-// v2.63 : sauvegarde locale automatique, client par client.
+// v2.64 : sauvegarde locale automatique, client par client.
 (() => {
   const INDEX_KEY = "CBAT_CHECKLIST_CLIENTS_V1";
   const SAVE_PREFIX = "CBAT_CHECKLIST_SAVE_V1::";
@@ -5232,12 +5232,54 @@ applyAlternatingRows();
   function updateLoadButton(){
     const name = cleanName(clientInput?.value);
     const saved = name ? findSavedClient(name) : null;
-    if (loadBtn) loadBtn.disabled = !saved;
-    if (!name) setSaveStatus("Saisir le nom du client");
-    else if (saved) {
+    if (loadBtn) loadBtn.disabled = false;
+    if (!name) {
+      const count = readIndex().length;
+      setSaveStatus(count ? `${count} client${count > 1 ? "s" : ""} sauvegardé${count > 1 ? "s" : ""} · cliquer sur Charger` : "Saisir le nom du client");
+    } else if (saved) {
       const d = saved.updatedAt ? new Date(saved.updatedAt) : null;
       setSaveStatus(d && !isNaN(d) ? `Sauvegarde trouvée · ${d.toLocaleString("fr-FR", {dateStyle:"short", timeStyle:"short"})}` : "Sauvegarde trouvée", "ok");
     } else setSaveStatus("Nouveau client · sauvegarde automatique", "warn");
+  }
+
+  function closeSavedClientPicker(){
+    const overlay = document.getElementById("savedClientOverlay");
+    if (overlay) {
+      overlay.classList.remove("show");
+      overlay.setAttribute("aria-hidden", "true");
+    }
+  }
+
+  function openSavedClientPicker(){
+    const overlay = document.getElementById("savedClientOverlay");
+    const choices = document.getElementById("savedClientChoices");
+    const items = readIndex().slice().sort((a,b) => String(b.updatedAt||"").localeCompare(String(a.updatedAt||"")));
+    if (!items.length) {
+      alert("Aucune checklist sauvegardée pour le moment.\n\nSaisis le nom du client : les réponses seront ensuite enregistrées automatiquement.");
+      return;
+    }
+    if (!overlay || !choices) return;
+    choices.innerHTML = "";
+    items.forEach(item => {
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "memo-item";
+      btn.style.width = "100%";
+      btn.style.textAlign = "left";
+      btn.style.display = "block";
+      const d = item.updatedAt ? new Date(item.updatedAt) : null;
+      const when = d && !isNaN(d) ? d.toLocaleString("fr-FR", {dateStyle:"short", timeStyle:"short"}) : "";
+      btn.textContent = when ? `${item.name} — ${when}` : item.name;
+      btn.addEventListener("click", () => {
+        if (clientInput) clientInput.value = item.name || "";
+        updateLoadButton();
+        closeSavedClientPicker();
+        if (!loadChecklistForClient(item.name)) setSaveStatus("Impossible de charger cette sauvegarde", "warn");
+      });
+      choices.appendChild(btn);
+    });
+    overlay.classList.add("show");
+    overlay.setAttribute("aria-hidden", "false");
   }
 
   function rowIdentity(row, rowIndex){
@@ -5393,7 +5435,25 @@ applyAlternatingRows();
     updateLoadButton();
   });
   loadBtn?.addEventListener("click", () => {
-    if (!loadChecklistForClient(clientInput?.value)) setSaveStatus("Aucune sauvegarde pour ce client", "warn");
+    const name = cleanName(clientInput?.value);
+    if (!name) {
+      openSavedClientPicker();
+      return;
+    }
+    if (!findSavedClient(name)) {
+      if (readIndex().length) {
+        setSaveStatus("Aucune sauvegarde pour ce nom · choisis un client enregistré", "warn");
+        openSavedClientPicker();
+      } else {
+        alert("Aucune checklist sauvegardée pour le moment.\n\nCe client sera sauvegardé automatiquement dès que tu commenceras à répondre.");
+      }
+      return;
+    }
+    if (!loadChecklistForClient(name)) setSaveStatus("Impossible de charger cette sauvegarde", "warn");
+  });
+  document.getElementById("closeSavedClientOverlay")?.addEventListener("click", closeSavedClientPicker);
+  document.getElementById("savedClientOverlay")?.addEventListener("click", e => {
+    if (e.target?.id === "savedClientOverlay") closeSavedClientPicker();
   });
 
   document.addEventListener("change", e => {
@@ -5448,5 +5508,16 @@ document.addEventListener("change", (e) => {
   });
 })();
 </script>
+
+<div class="memo-overlay" id="savedClientOverlay" aria-hidden="true">
+  <div class="memo-modal" role="dialog" aria-modal="true" aria-labelledby="savedClientTitle">
+    <div class="memo-head">
+      <h2 id="savedClientTitle">Clients sauvegardés</h2>
+      <button class="memo-close" id="closeSavedClientOverlay" type="button">Fermer</button>
+    </div>
+    <div class="memo-list" id="savedClientChoices"></div>
+  </div>
+</div>
+
 </body>
 </html>

@@ -980,7 +980,7 @@
         .client-identity input:focus{border-color:#93c5fd;box-shadow:0 0 0 3px rgba(59,130,246,.22)}
         .client-identity input::placeholder{color:rgba(191,219,254,.55);font-weight:500}
         @media(max-width:620px){.client-identity{align-items:stretch;flex-direction:column;gap:7px}.client-identity label{white-space:normal}.client-identity input{width:100%}}
-        /* v2.68 : proposition client + sauvegarde locale automatique */
+        /* v2.69 : proposition client + sauvegarde locale automatique */
         .client-save-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
         .client-save-actions button{padding:9px 11px;font-size:12px;white-space:nowrap}
         .client-save-status{font-size:12px;color:#93c5fd;min-width:150px}
@@ -989,7 +989,7 @@
         @media(max-width:620px){.client-save-actions{width:100%}.client-save-actions button{flex:0 0 auto}.client-save-status{width:100%}}
 
 
-        /* v2.68 : sélecteur Mes clients Extrabat, identique au générateur de devis */
+        /* v2.69 : sélecteur Mes clients Extrabat, identique au générateur de devis */
         .extrabat-clients{
             margin:0 0 14px;padding:14px;border:1px solid rgba(96,165,250,.48);border-radius:15px;
             background:rgba(37,99,235,.10);box-shadow:0 8px 24px rgba(0,0,0,.14);
@@ -1012,6 +1012,18 @@
         .extrabat-client-card button{flex:0 0 auto;padding:7px 10px;font-size:12px}
         @media(max-width:700px){.extrabat-client-card{align-items:stretch;flex-direction:column}.extrabat-client-card button{width:100%}}
 
+
+        /* v2.69 : ouverture des anciennes checklists sauvegardées Firebase */
+        .saved-checklist-open-btn{background:rgba(37,99,235,.30);border:1px solid rgba(96,165,250,.55)}
+        .saved-checklist-search{width:100%;height:42px;border-radius:12px;border:1px solid rgba(255,255,255,.18);background:rgba(0,0,0,.20);color:var(--text);padding:0 12px;font-size:14px;outline:none}
+        .saved-checklist-search:focus{border-color:#60a5fa;box-shadow:0 0 0 3px rgba(59,130,246,.20)}
+        .saved-checklist-status{color:var(--muted);font-size:12px;margin:8px 0 2px}
+        .saved-checklist-list{display:flex;flex-direction:column;gap:8px;margin-top:10px}
+        .saved-checklist-card{display:flex;justify-content:space-between;gap:12px;align-items:center;padding:11px 12px;border:1px solid rgba(255,255,255,.10);border-radius:12px;background:rgba(255,255,255,.045)}
+        .saved-checklist-card-main{min-width:0;flex:1}
+        .saved-checklist-card-title{font-weight:850;color:var(--text);margin-bottom:4px}
+        .saved-checklist-card-info{font-size:12px;color:var(--muted);line-height:1.35}
+        @media(max-width:680px){.saved-checklist-card{align-items:stretch;flex-direction:column}.saved-checklist-card button{width:100%}}
 </style>
 </head>
 <body>
@@ -1079,7 +1091,7 @@ document.addEventListener("DOMContentLoaded", () => {
   <button class="ghost btn-small" id="btnMemo" type="button">Mémo</button>
   <button class="ghost btn-small" id="btnInfoSup" type="button">Info sup</button>
   <button class="ghost btn-small" id="btnMode" type="button">Mode 1 par 1</button>
-  <div class="pill">v2.68</div>
+  <div class="pill">v2.69</div>
   <div class="pill auth-user hidden" id="authUserLabel"></div>
   <button class="ghost btn-small hidden" id="logoutBtn" type="button">Déconnexion</button>
 </div>
@@ -1095,6 +1107,7 @@ document.addEventListener("DOMContentLoaded", () => {
     </select>
     <input id="pvSearch" type="text" autocomplete="off" placeholder="Nom, ville, référence…" aria-label="Rechercher un client" />
     <button class="ghost" id="pvLoad" type="button">Actualiser</button>
+    <button class="ghost saved-checklist-open-btn" id="openSavedChecklistBtn" type="button">📂 Ouvrir une checklist</button>
   </div>
   <div class="extrabat-client-status" id="pvStatus">Chargement des clients…</div>
   <div class="extrabat-client-results" id="pvResults"></div>
@@ -5228,7 +5241,7 @@ applyAlternatingRows();
     </script>
 
 <script>
-// v2.68 : sauvegarde locale automatique, client par client.
+// v2.69 : sauvegarde locale automatique, client par client.
 (() => {
   const INDEX_KEY = "CBAT_CHECKLIST_CLIENTS_V1";
   const SAVE_PREFIX = "CBAT_CHECKLIST_SAVE_V1::";
@@ -5358,7 +5371,7 @@ applyAlternatingRows();
 
   function snapshotChecklist(){
     return {
-      version: "2.68",
+      version: "2.69",
       client: cleanName(clientInput?.value),
       savedAt: new Date().toISOString(),
       wizardIndex: (typeof wizardIndex !== "undefined" ? wizardIndex : 0),
@@ -5579,7 +5592,7 @@ applyAlternatingRows();
 </script>
 
 <script>
-// v2.68 : sauvegarde Firebase partagée des checklists PVMan.
+// v2.69 : sauvegarde Firebase partagée des checklists PVMan.
 (() => {
   const COLLECTION = "pvman_checklists";
   let cloudTimer = null;
@@ -5632,7 +5645,7 @@ applyAlternatingRows();
       const body = {
         fields: {
           schemaVersion: fieldInt(1),
-          formVersion: fieldString(payload.version || "2.68"),
+          formVersion: fieldString(payload.version || "2.69"),
           clientName: fieldString(payload.client || ""),
           clientId: fieldString(r.clientId || ""),
           appointmentId: fieldString(r.appointmentId || ""),
@@ -5798,6 +5811,18 @@ document.addEventListener("change", (e) => {
 })();
 </script>
 
+<div class="memo-overlay" id="savedChecklistOverlay" aria-hidden="true">
+  <div class="memo-modal" role="dialog" aria-modal="true" aria-labelledby="savedChecklistTitle">
+    <div class="memo-head">
+      <h2 id="savedChecklistTitle">Mes checklists sauvegardées</h2>
+      <button class="memo-close" id="closeSavedChecklistOverlay" type="button">Fermer</button>
+    </div>
+    <input class="saved-checklist-search" id="savedChecklistSearch" type="search" placeholder="Rechercher un client…" autocomplete="off"/>
+    <div class="saved-checklist-status" id="savedChecklistStatus">Chargement…</div>
+    <div class="saved-checklist-list" id="savedChecklistList"></div>
+  </div>
+</div>
+
 <div class="memo-overlay" id="savedClientOverlay" aria-hidden="true">
   <div class="memo-modal" role="dialog" aria-modal="true" aria-labelledby="savedClientTitle">
     <div class="memo-head">
@@ -5810,7 +5835,7 @@ document.addEventListener("change", (e) => {
 
 
 <script>
-// v2.68 : clients Extrabat (même source et mêmes filtres que le générateur de devis IKEA).
+// v2.69 : clients Extrabat (même source et mêmes filtres que le générateur de devis IKEA).
 (()=>{
   const period=document.getElementById('pvPeriod');
   const search=document.getElementById('pvSearch');
@@ -5960,5 +5985,80 @@ document.addEventListener("change", (e) => {
 })();
 </script>
 
+
+<script>
+// v2.69 : ouvrir une ancienne checklist directement depuis Firebase, indépendamment de l’export Extrabat.
+(()=>{
+  const btn=document.getElementById('openSavedChecklistBtn');
+  const overlay=document.getElementById('savedChecklistOverlay');
+  const closeBtn=document.getElementById('closeSavedChecklistOverlay');
+  const search=document.getElementById('savedChecklistSearch');
+  const list=document.getElementById('savedChecklistList');
+  const statusEl=document.getElementById('savedChecklistStatus');
+  if(!btn||!overlay||!closeBtn||!search||!list||!statusEl||typeof firebase==='undefined') return;
+
+  let records=[]; let loading=false;
+  const norm=s=>String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
+  const status=t=>{statusEl.textContent=t||''};
+  function decodeValue(v){
+    if(v==null) return null;
+    if('nullValue' in v) return null;
+    if('stringValue' in v) return v.stringValue;
+    if('timestampValue' in v) return v.timestampValue;
+    if('booleanValue' in v) return v.booleanValue;
+    if('integerValue' in v) return Number(v.integerValue);
+    if('doubleValue' in v) return Number(v.doubleValue);
+    if('arrayValue' in v) return (v.arrayValue.values||[]).map(decodeValue);
+    if('mapValue' in v) return Object.fromEntries(Object.entries(v.mapValue.fields||{}).map(([k,x])=>[k,decodeValue(x)]));
+    return null;
+  }
+  function formatDate(value){const d=new Date(value||'');return Number.isFinite(d.getTime())?d.toLocaleString('fr-FR'):'date inconnue'}
+  function openOverlay(){overlay.classList.add('show');overlay.setAttribute('aria-hidden','false');search.value='';loadAll();setTimeout(()=>search.focus(),50)}
+  function closeOverlay(){overlay.classList.remove('show');overlay.setAttribute('aria-hidden','true')}
+  function visibleRecords(){const q=norm(search.value.trim());return q?records.filter(r=>norm([r.clientName,r.clientId,r.ownerEmail,r.orderNo,r.pvmanEmail,r.appointmentDate].join(' ')).includes(q)):records}
+  function render(){
+    list.replaceChildren(); const rows=visibleRecords();
+    if(!rows.length){status(records.length?'Aucun dossier correspondant à la recherche.':'Aucune checklist sauvegardée.');return}
+    status(rows.length+' checklist'+(rows.length>1?'s':'')+' trouvée'+(rows.length>1?'s':''));
+    for(const r of rows){
+      const card=document.createElement('div');card.className='saved-checklist-card';
+      const main=document.createElement('div');main.className='saved-checklist-card-main';
+      const title=document.createElement('div');title.className='saved-checklist-card-title';title.textContent=r.clientName||('Client '+(r.clientId||''));
+      const info=document.createElement('div');info.className='saved-checklist-card-info';
+      const bits=[]; if(r.appointmentDate)bits.push('RDV '+String(r.appointmentDate).split('-').reverse().join('/')); if(r.orderNo)bits.push('OS '+r.orderNo); if(r.ownerEmail)bits.push('Enregistré par '+r.ownerEmail); bits.push('Sauvegarde '+formatDate(r.savedAt)); info.textContent=bits.filter(Boolean).join(' · ');
+      main.append(title,info);
+      const open=document.createElement('button');open.type='button';open.className='primary';open.textContent='Ouvrir';open.onclick=()=>openRecord(r);
+      card.append(main,open);list.append(card);
+    }
+  }
+  async function loadAll(){
+    if(loading)return; const user=firebase.auth().currentUser; if(!user){status('Connexion requise.');return}
+    loading=true;records=[];list.replaceChildren();status('Chargement des checklists sauvegardées…');
+    try{
+      const token=await user.getIdToken();const project=firebase.app().options.projectId;let pageToken='';
+      do{
+        const base=`https://firestore.googleapis.com/v1/projects/${encodeURIComponent(project)}/databases/licences/documents/pvman_checklists?pageSize=100`;
+        const url=base+(pageToken?('&pageToken='+encodeURIComponent(pageToken)):'');
+        const response=await fetch(url,{headers:{Authorization:'Bearer '+token},cache:'no-store'});
+        const body=await response.json().catch(()=>({})); if(!response.ok)throw Error(body?.error?.message||`Firebase HTTP ${response.status}`);
+        for(const doc of (body.documents||[])){const d=decodeValue({mapValue:{fields:doc.fields||{}}})||{};if(d.payloadJson)records.push({...d,_name:doc.name||''})}
+        pageToken=body.nextPageToken||'';
+      }while(pageToken);
+      records.sort((a,b)=>(Date.parse(b.savedAt||0)||0)-(Date.parse(a.savedAt||0)||0));render();
+    }catch(e){console.error('Lecture historique checklists Firebase',e);status('Impossible de lire les checklists : '+(e.message||'erreur Firebase'))}finally{loading=false}
+  }
+  async function openRecord(r){
+    let payload;try{payload=JSON.parse(r.payloadJson||'')}catch(e){alert('Cette sauvegarde est illisible.');return}
+    const input=document.getElementById('clientIdentity');const previous=String(input?.value||'').trim();
+    if(previous&&norm(previous)!==norm(r.clientName||'')&&!confirm('Changer de client ? La checklist actuelle sera sauvegardée avant ouverture.'))return;
+    try{if(window.CBAT_CHECKLIST_CLOUD?.flushSave)await window.CBAT_CHECKLIST_CLOUD.flushSave('client-change')}catch(e){}
+    window.pvmanSelectedClient={clientId:r.clientId||'',appointmentId:r.appointmentId||'',serviceId:r.serviceId||'',orderNo:r.orderNo||'',pvmanEmail:r.pvmanEmail||'',date:r.appointmentDate||'',time:r.appointmentTime||'',address:''};
+    if(input){input.value=r.clientName||payload.client||'';input.dispatchEvent(new Event('input',{bubbles:true}))}
+    const ok=!!window.CBAT_CHECKLIST_STORAGE?.restorePayload?.(payload,(r.clientName||payload.client||''));
+    if(ok){const d=new Date(r.savedAt||payload.savedAt||Date.now());window.CBAT_CHECKLIST_STORAGE?.setStatus?.(`Reprise Firebase · ${d.toLocaleString('fr-FR')}`,'ok');closeOverlay()}else alert('Impossible de restaurer cette checklist.')
+  }
+  btn.addEventListener('click',openOverlay);closeBtn.addEventListener('click',closeOverlay);overlay.addEventListener('click',e=>{if(e.target===overlay)closeOverlay()});search.addEventListener('input',render);
+})();
+</script>
 </body>
 </html>

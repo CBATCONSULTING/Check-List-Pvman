@@ -980,7 +980,7 @@
         .client-identity input:focus{border-color:#93c5fd;box-shadow:0 0 0 3px rgba(59,130,246,.22)}
         .client-identity input::placeholder{color:rgba(191,219,254,.55);font-weight:500}
         @media(max-width:620px){.client-identity{align-items:stretch;flex-direction:column;gap:7px}.client-identity label{white-space:normal}.client-identity input{width:100%}}
-        /* v2.67 : proposition client + sauvegarde locale automatique */
+        /* v2.68 : proposition client + sauvegarde locale automatique */
         .client-save-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
         .client-save-actions button{padding:9px 11px;font-size:12px;white-space:nowrap}
         .client-save-status{font-size:12px;color:#93c5fd;min-width:150px}
@@ -989,7 +989,7 @@
         @media(max-width:620px){.client-save-actions{width:100%}.client-save-actions button{flex:0 0 auto}.client-save-status{width:100%}}
 
 
-        /* v2.67 : sélecteur Mes clients Extrabat, identique au générateur de devis */
+        /* v2.68 : sélecteur Mes clients Extrabat, identique au générateur de devis */
         .extrabat-clients{
             margin:0 0 14px;padding:14px;border:1px solid rgba(96,165,250,.48);border-radius:15px;
             background:rgba(37,99,235,.10);box-shadow:0 8px 24px rgba(0,0,0,.14);
@@ -1079,7 +1079,7 @@ document.addEventListener("DOMContentLoaded", () => {
   <button class="ghost btn-small" id="btnMemo" type="button">Mémo</button>
   <button class="ghost btn-small" id="btnInfoSup" type="button">Info sup</button>
   <button class="ghost btn-small" id="btnMode" type="button">Mode 1 par 1</button>
-  <div class="pill">v2.67</div>
+  <div class="pill">v2.68</div>
   <div class="pill auth-user hidden" id="authUserLabel"></div>
   <button class="ghost btn-small hidden" id="logoutBtn" type="button">Déconnexion</button>
 </div>
@@ -2332,7 +2332,10 @@ document.addEventListener("DOMContentLoaded", () => {
         }
         loginBtn.addEventListener("click",checklistLogin);
         loginPassword.addEventListener("keydown",event=>{if(event.key==="Enter")checklistLogin()});
-        logoutBtn.addEventListener("click",()=>firebase.auth().signOut());
+        logoutBtn.addEventListener("click", async ()=>{
+          try { await window.CBAT_CHECKLIST_CLOUD?.flushSave?.("logout"); } catch(e) { console.warn("Sauvegarde avant déconnexion", e); }
+          await firebase.auth().signOut();
+        });
         document.getElementById("portalBtn").addEventListener("click",()=>window.open("/Devis-IKEA/?portal=1","_blank","noopener"));
         firebase.auth().onAuthStateChanged(async user=>{
           if(!user){authGate.classList.remove("hidden");showChecklistPortal(false);authUserLabel.classList.add("hidden");logoutBtn.classList.add("hidden");setChecklistAuthMessage("Connectez-vous pour utiliser la check-list.");return}
@@ -5225,7 +5228,7 @@ applyAlternatingRows();
     </script>
 
 <script>
-// v2.67 : sauvegarde locale automatique, client par client.
+// v2.68 : sauvegarde locale automatique, client par client.
 (() => {
   const INDEX_KEY = "CBAT_CHECKLIST_CLIENTS_V1";
   const SAVE_PREFIX = "CBAT_CHECKLIST_SAVE_V1::";
@@ -5355,7 +5358,7 @@ applyAlternatingRows();
 
   function snapshotChecklist(){
     return {
-      version: "2.67",
+      version: "2.68",
       client: cleanName(clientInput?.value),
       savedAt: new Date().toISOString(),
       wizardIndex: (typeof wizardIndex !== "undefined" ? wizardIndex : 0),
@@ -5369,6 +5372,8 @@ applyAlternatingRows();
 
   function saveChecklistNow(){
     if (restoringChecklist) return;
+    clearTimeout(autosaveTimer);
+    autosaveTimer = null;
     const name = cleanName(clientInput?.value);
     if (!name) return;
     activeSaveClient = name;
@@ -5574,12 +5579,13 @@ applyAlternatingRows();
 </script>
 
 <script>
-// v2.67 : sauvegarde Firebase partagée des checklists PVMan.
+// v2.68 : sauvegarde Firebase partagée des checklists PVMan.
 (() => {
   const COLLECTION = "pvman_checklists";
   let cloudTimer = null;
   let writeSequence = 0;
   let cloudBusy = false;
+  let cloudWriteChain = Promise.resolve(true);
 
   const clean = v => String(v || "").trim();
   const safeId = v => clean(v).replace(/[^a-zA-Z0-9_.-]+/g, "_").replace(/^_+|_+$/g, "").slice(0, 180);
@@ -5613,7 +5619,7 @@ applyAlternatingRows();
     try { window.CBAT_CHECKLIST_STORAGE?.setStatus?.(text, type); } catch(e){}
   }
 
-  async function savePayload(payload){
+  async function performSavePayload(payload){
     const r = selectedClient();
     const user = firebase?.auth?.().currentUser;
     const url = docUrl(r);
@@ -5626,7 +5632,7 @@ applyAlternatingRows();
       const body = {
         fields: {
           schemaVersion: fieldInt(1),
-          formVersion: fieldString(payload.version || "2.67"),
+          formVersion: fieldString(payload.version || "2.68"),
           clientName: fieldString(payload.client || ""),
           clientId: fieldString(r.clientId || ""),
           appointmentId: fieldString(r.appointmentId || ""),
@@ -5646,7 +5652,8 @@ applyAlternatingRows();
         method:"PATCH",
         headers:{Authorization:`Bearer ${token}`, "Content-Type":"application/json"},
         body:JSON.stringify(body),
-        cache:"no-store"
+        cache:"no-store",
+        keepalive:true
       });
       let result={}; try{ result=await response.json(); }catch(e){}
       if(!response.ok){
@@ -5668,7 +5675,30 @@ applyAlternatingRows();
     }finally{ cloudBusy=false; }
   }
 
-  function scheduleSave(payload=null, delay=1200){
+  function savePayload(payload){
+    if(!payload?.fields) return Promise.resolve(false);
+    const run = () => performSavePayload(payload);
+    // Les écritures sont sérialisées : une ancienne sauvegarde ne peut pas finir après la plus récente.
+    cloudWriteChain = cloudWriteChain.catch(()=>false).then(run);
+    return cloudWriteChain;
+  }
+
+  async function flushSave(reason=""){
+    clearTimeout(cloudTimer);
+    cloudTimer = null;
+    try { window.CBAT_CHECKLIST_STORAGE?.save?.(); } catch(e) { console.warn("Sauvegarde locale immédiate", e); }
+    // save() programme normalement le cloud : on annule ce délai et on pousse immédiatement un snapshot neuf.
+    clearTimeout(cloudTimer);
+    cloudTimer = null;
+    const snap = window.CBAT_CHECKLIST_STORAGE?.snapshot?.();
+    if(snap?.fields && selectedClient()?.clientId){
+      status(reason === "logout" ? "☁ Sauvegarde avant déconnexion…" : "☁ Sauvegarde immédiate…");
+      return await savePayload(snap);
+    }
+    try { return await cloudWriteChain; } catch(e) { return false; }
+  }
+
+  function scheduleSave(payload=null, delay=300){
     const r = selectedClient();
     if(!r?.clientId) return;
     clearTimeout(cloudTimer);
@@ -5727,7 +5757,19 @@ applyAlternatingRows();
     return ok;
   }
 
-  window.CBAT_CHECKLIST_CLOUD={scheduleSave, saveNow:()=>savePayload(window.CBAT_CHECKLIST_STORAGE?.snapshot?.()), loadSelectedClient, docId:()=>docIdFor(selectedClient())};
+  window.CBAT_CHECKLIST_CLOUD={
+    scheduleSave,
+    saveNow:()=>savePayload(window.CBAT_CHECKLIST_STORAGE?.snapshot?.()),
+    flushSave,
+    loadSelectedClient,
+    docId:()=>docIdFor(selectedClient())
+  };
+
+  // Sauvegarde opportuniste dès que l'utilisateur quitte l'onglet / passe à une autre application.
+  document.addEventListener("visibilitychange", () => {
+    if(document.visibilityState === "hidden") flushSave("hidden").catch(()=>{});
+  });
+  window.addEventListener("pagehide", () => { flushSave("pagehide").catch(()=>{}); });
 })();
 </script>
 
@@ -5768,7 +5810,7 @@ document.addEventListener("change", (e) => {
 
 
 <script>
-// v2.67 : clients Extrabat (même source et mêmes filtres que le générateur de devis IKEA).
+// v2.68 : clients Extrabat (même source et mêmes filtres que le générateur de devis IKEA).
 (()=>{
   const period=document.getElementById('pvPeriod');
   const search=document.getElementById('pvSearch');
@@ -5842,7 +5884,10 @@ document.addEventListener("change", (e) => {
     const previous=String(clientInput.value||'').trim();
     if(previous && norm(previous)!==norm(name)){
       if(!confirm('Changer de client ? La checklist actuelle sera sauvegardée avant le changement.')) return;
-      try{ window.CBAT_CHECKLIST_STORAGE?.save?.(); window.CBAT_CHECKLIST_CLOUD?.saveNow?.(); }catch(e){}
+      try{
+        if(window.CBAT_CHECKLIST_CLOUD?.flushSave) await window.CBAT_CHECKLIST_CLOUD.flushSave("client-change");
+        else { window.CBAT_CHECKLIST_STORAGE?.save?.(); await window.CBAT_CHECKLIST_CLOUD?.saveNow?.(); }
+      }catch(e){ console.warn("Sauvegarde avant changement de client", e); }
     }
     window.pvmanSelectedClient={clientId:r.clientId,appointmentId:r.id,serviceId:r.serviceId,orderNo:r.orderNo||'',pvmanEmail:r.pvmanEmail,date:r.date,time:r.time,address:r.address||''};
     clientInput.value=name;

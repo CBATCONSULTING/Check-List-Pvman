@@ -980,13 +980,37 @@
         .client-identity input:focus{border-color:#93c5fd;box-shadow:0 0 0 3px rgba(59,130,246,.22)}
         .client-identity input::placeholder{color:rgba(191,219,254,.55);font-weight:500}
         @media(max-width:620px){.client-identity{align-items:stretch;flex-direction:column;gap:7px}.client-identity label{white-space:normal}.client-identity input{width:100%}}
-        /* v2.64 : proposition client + sauvegarde locale automatique */
+        /* v2.65 : proposition client + sauvegarde locale automatique */
         .client-save-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
         .client-save-actions button{padding:9px 11px;font-size:12px;white-space:nowrap}
         .client-save-status{font-size:12px;color:#93c5fd;min-width:150px}
         .client-save-status.ok{color:#86efac}
         .client-save-status.warn{color:#fcd34d}
         @media(max-width:620px){.client-save-actions{width:100%}.client-save-actions button{flex:0 0 auto}.client-save-status{width:100%}}
+
+
+        /* v2.65 : sélecteur Mes clients Extrabat, identique au générateur de devis */
+        .extrabat-clients{
+            margin:0 0 14px;padding:14px;border:1px solid rgba(96,165,250,.48);border-radius:15px;
+            background:rgba(37,99,235,.10);box-shadow:0 8px 24px rgba(0,0,0,.14);
+        }
+        .extrabat-clients-title{font-size:14px;font-weight:900;color:#dbeafe;margin-bottom:10px}
+        .extrabat-client-controls{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+        .extrabat-client-controls select,.extrabat-client-controls input{
+            height:38px;border:1px solid rgba(147,197,253,.48);border-radius:10px;background:rgba(6,12,30,.74);
+            color:var(--text);padding:0 10px;outline:none;font:inherit
+        }
+        .extrabat-client-controls select{min-width:205px}
+        .extrabat-client-controls input{flex:1;min-width:220px}
+        .extrabat-client-controls select option{color:#111;background:#fff}
+        .extrabat-client-status{margin-top:9px;color:var(--muted);font-size:12px;line-height:1.35}
+        .extrabat-client-results{display:flex;flex-direction:column;gap:7px;max-height:300px;overflow:auto;margin-top:10px}
+        .extrabat-client-card{display:flex;gap:10px;align-items:center;justify-content:space-between;padding:10px 11px;border:1px solid rgba(255,255,255,.11);border-radius:11px;background:rgba(255,255,255,.045)}
+        .extrabat-client-card-main{min-width:0;flex:1}
+        .extrabat-client-card-title{font-weight:850;color:var(--text);font-size:13px}
+        .extrabat-client-card-info{color:var(--muted);font-size:11px;margin-top:3px;line-height:1.3}
+        .extrabat-client-card button{flex:0 0 auto;padding:7px 10px;font-size:12px}
+        @media(max-width:700px){.extrabat-client-card{align-items:stretch;flex-direction:column}.extrabat-client-card button{width:100%}}
 
 </style>
 </head>
@@ -1055,19 +1079,31 @@ document.addEventListener("DOMContentLoaded", () => {
   <button class="ghost btn-small" id="btnMemo" type="button">Mémo</button>
   <button class="ghost btn-small" id="btnInfoSup" type="button">Info sup</button>
   <button class="ghost btn-small" id="btnMode" type="button">Mode 1 par 1</button>
-  <div class="pill">v2.64</div>
+  <div class="pill">v2.65</div>
   <div class="pill auth-user hidden" id="authUserLabel"></div>
   <button class="ghost btn-small hidden" id="logoutBtn" type="button">Déconnexion</button>
 </div>
 </div>
+<section class="extrabat-clients" id="extrabatClientsBox">
+  <div class="extrabat-clients-title">Mes clients Extrabat</div>
+  <div class="extrabat-client-controls">
+    <select id="pvPeriod" aria-label="Période clients Extrabat">
+      <option value="today">Mes clients du jour</option>
+      <option value="week">Ma semaine</option>
+      <option value="next">Ma semaine suivante</option>
+      <option value="all">Tous les clients exportés</option>
+    </select>
+    <input id="pvSearch" type="text" autocomplete="off" placeholder="Nom, ville, référence…" aria-label="Rechercher un client" />
+    <button class="ghost" id="pvLoad" type="button">Actualiser</button>
+  </div>
+  <div class="extrabat-client-status" id="pvStatus">Chargement des clients…</div>
+  <div class="extrabat-client-results" id="pvResults"></div>
+</section>
 <div class="client-identity">
   <label for="clientIdentity">Client / Référence chantier</label>
-  <input id="clientIdentity" type="text" autocomplete="off" list="savedClientList" placeholder="Ex. DUPONT — Paris 15" />
+  <input id="clientIdentity" type="text" autocomplete="off" list="savedClientList" placeholder="Sélectionner un client Extrabat ou saisir manuellement" />
   <datalist id="savedClientList"></datalist>
-  <div class="client-save-actions">
-    <button class="ghost" id="loadClientChecklistBtn" type="button">Charger</button>
-    <span class="client-save-status" id="clientSaveStatus">Saisir le nom du client</span>
-  </div>
+  <span class="client-save-status" id="clientSaveStatus">Sélectionner un client Extrabat</span>
 </div>
 <div class="card">
 <div class="section-title" id="sectionTitle">Informations générales</div>
@@ -5189,7 +5225,7 @@ applyAlternatingRows();
     </script>
 
 <script>
-// v2.64 : sauvegarde locale automatique, client par client.
+// v2.65 : sauvegarde locale automatique, client par client.
 (() => {
   const INDEX_KEY = "CBAT_CHECKLIST_CLIENTS_V1";
   const SAVE_PREFIX = "CBAT_CHECKLIST_SAVE_V1::";
@@ -5319,7 +5355,7 @@ applyAlternatingRows();
 
   function snapshotChecklist(){
     return {
-      version: "2.63",
+      version: "2.65",
       client: cleanName(clientInput?.value),
       savedAt: new Date().toISOString(),
       wizardIndex: (typeof wizardIndex !== "undefined" ? wizardIndex : 0),
@@ -5518,6 +5554,155 @@ document.addEventListener("change", (e) => {
     <div class="memo-list" id="savedClientChoices"></div>
   </div>
 </div>
+
+
+<script>
+// v2.65 : clients Extrabat (même source et mêmes filtres que le générateur de devis IKEA).
+(()=>{
+  const period=document.getElementById('pvPeriod');
+  const search=document.getElementById('pvSearch');
+  const loadBtn=document.getElementById('pvLoad');
+  const results=document.getElementById('pvResults');
+  const statusEl=document.getElementById('pvStatus');
+  const clientInput=document.getElementById('clientIdentity');
+  if(!period||!search||!loadBtn||!results||!statusEl||!clientInput||typeof firebase==='undefined') return;
+
+  let payload=null;
+  let sessionEmail='';
+  let loadSequence=0;
+  const day=d=>[d.getFullYear(),String(d.getMonth()+1).padStart(2,'0'),String(d.getDate()).padStart(2,'0')].join('-');
+  const norm=s=>String(s||'').normalize('NFD').replace(/[\\u0300-\\u036f]/g,'').toLowerCase();
+  const setStatus=t=>{statusEl.textContent=t||''};
+
+  function decodeValue(v){
+    if(v==null) return null;
+    if('nullValue' in v) return null;
+    if('stringValue' in v) return v.stringValue;
+    if('timestampValue' in v) return v.timestampValue;
+    if('booleanValue' in v) return v.booleanValue;
+    if('integerValue' in v) return Number(v.integerValue);
+    if('doubleValue' in v) return Number(v.doubleValue);
+    if('arrayValue' in v) return (v.arrayValue.values||[]).map(decodeValue);
+    if('mapValue' in v) return Object.fromEntries(Object.entries(v.mapValue.fields||{}).map(([k,x])=>[k,decodeValue(x)]));
+    return null;
+  }
+
+  function accept(data){
+    if(!data || data.schemaVersion!==1 || !Array.isArray(data.appointments) || !Number.isFinite(Date.parse(data.updatedAt)))
+      throw Error('Format de la liste clients non reconnu.');
+    payload=data;
+    render();
+  }
+
+  function filteredRows(){
+    if(!payload) return [];
+    const now=new Date();
+    const mon=new Date(now); mon.setHours(0,0,0,0); mon.setDate(now.getDate()-((now.getDay()+6)%7));
+    const next=new Date(mon); next.setDate(mon.getDate()+7);
+    const after=new Date(mon); after.setDate(mon.getDate()+14);
+    const mode=period.value;
+    const q=norm(search.value);
+    return payload.appointments.filter(r=>{
+      if(mode!=='all' && norm(r.pvmanEmail)!==norm(sessionEmail)) return false;
+      if(mode==='today' && r.date!==day(now)) return false;
+      if(mode==='week' && !(r.date>=day(mon) && r.date<day(next))) return false;
+      if(mode==='next' && !(r.date>=day(next) && r.date<day(after))) return false;
+      return norm([r.name,r.label,r.clientId,r.address,r.orderNo].join(' ')).includes(q);
+    });
+  }
+
+  function clearQuestionnaireForNewClient(){
+    document.querySelectorAll('#list input[type="radio"], #list input[type="checkbox"]').forEach(el=>el.checked=false);
+    document.querySelectorAll('#list input[type="text"], #list textarea').forEach(el=>el.value='');
+    document.querySelectorAll('#list select').forEach(el=>el.selectedIndex=0);
+    try{ Object.keys(memoState).forEach(k=>delete memoState[k]); }catch(e){}
+    try{ Object.keys(infoSupState).forEach(k=>delete infoSupState[k]); infoSupValidated=false; finalButtonPressed=false; }catch(e){}
+    try{
+      updatePlaqueHotteConstraint(); syncGazChiffrageOptions(); syncNonIkeaLengthInputs(); syncMitigeurHeightInputs();
+      syncWidthSelectAvailability(); syncChiffrageSelectAvailability(); syncWorkCommentInputs(); syncDeposeCommentInputs();
+      syncOtherNonIkeaLabels(); buildRecap(); updateCopyVisibility();
+      if(typeof wizardSteps!=='undefined'){ wizardSteps=buildWizardSteps(); wizardIndex=0; showWizardStep(0); }
+    }catch(e){ console.warn('Réinitialisation client partielle',e); }
+  }
+
+  function useClient(r){
+    const name=String(r.name||r.label||'').trim();
+    if(!name) return;
+    const previous=String(clientInput.value||'').trim();
+    if(previous && norm(previous)!==norm(name)){
+      if(!confirm('Changer de client ? La checklist actuelle sera sauvegardée avant le changement.')) return;
+      try{ window.CBAT_CHECKLIST_STORAGE?.save?.(); }catch(e){}
+    }
+    window.pvmanSelectedClient={clientId:r.clientId,appointmentId:r.id,serviceId:r.serviceId,orderNo:r.orderNo||'',pvmanEmail:r.pvmanEmail,date:r.date,time:r.time,address:r.address||''};
+    clientInput.value=name;
+    clientInput.dispatchEvent(new Event('input',{bubbles:true}));
+
+    let loaded=false;
+    try{ loaded=!!window.CBAT_CHECKLIST_STORAGE?.load?.(name); }catch(e){}
+    if(!loaded){
+      if(previous && norm(previous)!==norm(name)) clearQuestionnaireForNewClient();
+      clientInput.dispatchEvent(new Event('change',{bubbles:true}));
+    }
+    setStatus((loaded?'Checklist reprise : ':'Client sélectionné : ')+name+' — réf. Extrabat '+r.clientId);
+    results.replaceChildren();
+  }
+
+  function render(){
+    results.replaceChildren();
+    if(!payload) return;
+    const rows=filteredRows();
+    for(const r of rows){
+      const card=document.createElement('div'); card.className='extrabat-client-card';
+      const main=document.createElement('div'); main.className='extrabat-client-card-main';
+      const title=document.createElement('div'); title.className='extrabat-client-card-title'; title.textContent=(r.name||r.label||'Client')+(r.type?' · '+r.type:'');
+      const info=document.createElement('div'); info.className='extrabat-client-card-info';
+      const dateText=r.date?String(r.date).split('-').reverse().join('/'):'Date non renseignée';
+      info.textContent=[dateText+(r.time?' à '+r.time:''), r.pvman||'', r.address||'Adresse non renseignée', r.orderNo?('OS '+r.orderNo):''].filter(Boolean).join(' · ');
+      main.append(title,info);
+      const btn=document.createElement('button'); btn.type='button'; btn.className='primary'; btn.textContent='Utiliser ce client'; btn.onclick=()=>useClient(r);
+      card.append(main,btn); results.append(card);
+    }
+    const stamp=new Date(payload.updatedAt);
+    const stale=Date.now()-stamp.getTime()>36*3600000;
+    setStatus(rows.length+' rendez-vous · mise à jour : '+stamp.toLocaleString('fr-FR')+(stale?' — export ancien, vérifier le planning.':''));
+  }
+
+  async function load(){
+    const sequence=++loadSequence;
+    results.replaceChildren();
+    const user=firebase.auth().currentUser;
+    if(!user){ setStatus('Connecte-toi pour retrouver tes clients Extrabat.'); return; }
+    setStatus('Chargement…');
+    try{
+      const token=await user.getIdToken();
+      if(sequence!==loadSequence) return;
+      const project=firebase.app().options.projectId;
+      const controller=new AbortController(); const timer=setTimeout(()=>controller.abort(),30000);
+      let response,body;
+      try{
+        response=await fetch('https://firestore.googleapis.com/v1/projects/'+encodeURIComponent(project)+'/databases/licences/documents/pvman_clients/current',{headers:{Authorization:'Bearer '+token},cache:'no-store',signal:controller.signal});
+        body=await response.json();
+      }finally{clearTimeout(timer);}
+      if(sequence!==loadSequence) return;
+      if(response.status===404){setStatus('Aucun export clients publié.');return;}
+      if(!response.ok) throw Error(response.status===403?'Accès refusé par Firebase.':'Lecture clients impossible (HTTP '+response.status+').');
+      accept(decodeValue({mapValue:{fields:body.fields||{}}}));
+    }catch(e){
+      const msg=e.name==='AbortError'?'Délai de lecture dépassé. Réessaie avec Actualiser.':(e.message||'Lecture impossible.');
+      setStatus('Liste indisponible : '+msg); console.error('Clients Extrabat checklist :',e);
+    }
+  }
+
+  period.addEventListener('change',render);
+  search.addEventListener('input',render);
+  loadBtn.addEventListener('click',load);
+  firebase.auth().onAuthStateChanged(user=>{
+    sessionEmail=(user?.email||'').toLowerCase();
+    payload=null; results.replaceChildren();
+    if(user) load(); else setStatus('Connecte-toi pour retrouver tes clients Extrabat.');
+  });
+})();
+</script>
 
 </body>
 </html>

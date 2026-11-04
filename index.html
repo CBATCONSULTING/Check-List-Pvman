@@ -980,7 +980,7 @@
         .client-identity input:focus{border-color:#93c5fd;box-shadow:0 0 0 3px rgba(59,130,246,.22)}
         .client-identity input::placeholder{color:rgba(191,219,254,.55);font-weight:500}
         @media(max-width:620px){.client-identity{align-items:stretch;flex-direction:column;gap:7px}.client-identity label{white-space:normal}.client-identity input{width:100%}}
-        /* v2.69 : proposition client + sauvegarde locale automatique */
+        /* v2.70 : proposition client + sauvegarde locale automatique */
         .client-save-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
         .client-save-actions button{padding:9px 11px;font-size:12px;white-space:nowrap}
         .client-save-status{font-size:12px;color:#93c5fd;min-width:150px}
@@ -989,7 +989,7 @@
         @media(max-width:620px){.client-save-actions{width:100%}.client-save-actions button{flex:0 0 auto}.client-save-status{width:100%}}
 
 
-        /* v2.69 : sélecteur Mes clients Extrabat, identique au générateur de devis */
+        /* v2.70 : sélecteur Mes clients Extrabat, identique au générateur de devis */
         .extrabat-clients{
             margin:0 0 14px;padding:14px;border:1px solid rgba(96,165,250,.48);border-radius:15px;
             background:rgba(37,99,235,.10);box-shadow:0 8px 24px rgba(0,0,0,.14);
@@ -1013,7 +1013,7 @@
         @media(max-width:700px){.extrabat-client-card{align-items:stretch;flex-direction:column}.extrabat-client-card button{width:100%}}
 
 
-        /* v2.69 : ouverture des anciennes checklists sauvegardées Firebase */
+        /* v2.70 : ouverture des anciennes checklists sauvegardées Firebase */
         .saved-checklist-open-btn{background:rgba(37,99,235,.30);border:1px solid rgba(96,165,250,.55)}
         .saved-checklist-search{width:100%;height:42px;border-radius:12px;border:1px solid rgba(255,255,255,.18);background:rgba(0,0,0,.20);color:var(--text);padding:0 12px;font-size:14px;outline:none}
         .saved-checklist-search:focus{border-color:#60a5fa;box-shadow:0 0 0 3px rgba(59,130,246,.20)}
@@ -1023,7 +1023,10 @@
         .saved-checklist-card-main{min-width:0;flex:1}
         .saved-checklist-card-title{font-weight:850;color:var(--text);margin-bottom:4px}
         .saved-checklist-card-info{font-size:12px;color:var(--muted);line-height:1.35}
-        @media(max-width:680px){.saved-checklist-card{align-items:stretch;flex-direction:column}.saved-checklist-card button{width:100%}}
+        .saved-checklist-more{display:flex;justify-content:center;margin-top:12px}
+        .saved-checklist-more.hidden{display:none !important}
+        .saved-checklist-more button{min-width:220px}
+        @media(max-width:680px){.saved-checklist-card{align-items:stretch;flex-direction:column}.saved-checklist-card button{width:100%}.saved-checklist-more button{width:100%}}
 </style>
 </head>
 <body>
@@ -1091,7 +1094,7 @@ document.addEventListener("DOMContentLoaded", () => {
   <button class="ghost btn-small" id="btnMemo" type="button">Mémo</button>
   <button class="ghost btn-small" id="btnInfoSup" type="button">Info sup</button>
   <button class="ghost btn-small" id="btnMode" type="button">Mode 1 par 1</button>
-  <div class="pill">v2.69</div>
+  <div class="pill">v2.70</div>
   <div class="pill auth-user hidden" id="authUserLabel"></div>
   <button class="ghost btn-small hidden" id="logoutBtn" type="button">Déconnexion</button>
 </div>
@@ -5241,7 +5244,7 @@ applyAlternatingRows();
     </script>
 
 <script>
-// v2.69 : sauvegarde locale automatique, client par client.
+// v2.70 : sauvegarde locale automatique, client par client.
 (() => {
   const INDEX_KEY = "CBAT_CHECKLIST_CLIENTS_V1";
   const SAVE_PREFIX = "CBAT_CHECKLIST_SAVE_V1::";
@@ -5371,7 +5374,7 @@ applyAlternatingRows();
 
   function snapshotChecklist(){
     return {
-      version: "2.69",
+      version: "2.70",
       client: cleanName(clientInput?.value),
       savedAt: new Date().toISOString(),
       wizardIndex: (typeof wizardIndex !== "undefined" ? wizardIndex : 0),
@@ -5592,7 +5595,7 @@ applyAlternatingRows();
 </script>
 
 <script>
-// v2.69 : sauvegarde Firebase partagée des checklists PVMan.
+// v2.70 : sauvegarde Firebase partagée des checklists PVMan.
 (() => {
   const COLLECTION = "pvman_checklists";
   let cloudTimer = null;
@@ -5616,6 +5619,21 @@ applyAlternatingRows();
   function fieldString(v){ return {stringValue:String(v ?? "")}; }
   function fieldBool(v){ return {booleanValue:!!v}; }
   function fieldInt(v){ return {integerValue:String(Number.isFinite(Number(v)) ? Math.trunc(Number(v)) : 0)}; }
+  function fieldArray(values){ return {arrayValue:{values:(values||[]).map(fieldString)}}; }
+  function searchNorm(v){
+    return String(v||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase().replace(/[^a-z0-9]+/g," ").trim();
+  }
+  function searchKeysFor(payload,r){
+    const raw=[payload?.client||"",r?.clientId||"",r?.orderNo||""].map(searchNorm).join(" ");
+    const words=raw.split(/\s+/).filter(Boolean);
+    const out=new Set();
+    for(const word of words){
+      if(word.length===1){ out.add(word); continue; }
+      for(let i=2;i<=Math.min(word.length,32);i++) out.add(word.slice(0,i));
+      out.add(word);
+    }
+    return Array.from(out).slice(0,180);
+  }
   function decodeValue(v){
     if(v==null) return null;
     if('nullValue' in v) return null;
@@ -5645,7 +5663,7 @@ applyAlternatingRows();
       const body = {
         fields: {
           schemaVersion: fieldInt(1),
-          formVersion: fieldString(payload.version || "2.69"),
+          formVersion: fieldString(payload.version || "2.70"),
           clientName: fieldString(payload.client || ""),
           clientId: fieldString(r.clientId || ""),
           appointmentId: fieldString(r.appointmentId || ""),
@@ -5658,6 +5676,8 @@ applyAlternatingRows();
           ownerEmail: fieldString(user.email || ""),
           savedAt: fieldString(payload.savedAt || new Date().toISOString()),
           completed: fieldBool(!!payload.finalButtonPressed),
+          clientNameSearch: fieldString(searchNorm(payload.client || "")),
+          searchKeys: fieldArray(searchKeysFor(payload,r)),
           payloadJson: fieldString(JSON.stringify(payload))
         }
       };
@@ -5820,6 +5840,9 @@ document.addEventListener("change", (e) => {
     <input class="saved-checklist-search" id="savedChecklistSearch" type="search" placeholder="Rechercher un client…" autocomplete="off"/>
     <div class="saved-checklist-status" id="savedChecklistStatus">Chargement…</div>
     <div class="saved-checklist-list" id="savedChecklistList"></div>
+    <div class="saved-checklist-more" id="savedChecklistMoreWrap">
+      <button class="ghost" id="savedChecklistMore" type="button">Charger 50 plus anciennes</button>
+    </div>
   </div>
 </div>
 
@@ -5835,7 +5858,7 @@ document.addEventListener("change", (e) => {
 
 
 <script>
-// v2.69 : clients Extrabat (même source et mêmes filtres que le générateur de devis IKEA).
+// v2.70 : clients Extrabat (même source et mêmes filtres que le générateur de devis IKEA).
 (()=>{
   const period=document.getElementById('pvPeriod');
   const search=document.getElementById('pvSearch');
@@ -5987,7 +6010,10 @@ document.addEventListener("change", (e) => {
 
 
 <script>
-// v2.69 : ouvrir une ancienne checklist directement depuis Firebase, indépendamment de l’export Extrabat.
+// v2.70 : historique optimisé.
+// - ouverture = 50 dossiers les plus récents seulement
+// - bouton « plus anciennes » = pagination de 50 en 50
+// - recherche = requête Firebase ciblée via l’index searchKeys, sans télécharger tout l’historique
 (()=>{
   const btn=document.getElementById('openSavedChecklistBtn');
   const overlay=document.getElementById('savedChecklistOverlay');
@@ -5995,10 +6021,19 @@ document.addEventListener("change", (e) => {
   const search=document.getElementById('savedChecklistSearch');
   const list=document.getElementById('savedChecklistList');
   const statusEl=document.getElementById('savedChecklistStatus');
-  if(!btn||!overlay||!closeBtn||!search||!list||!statusEl||typeof firebase==='undefined') return;
+  const moreBtn=document.getElementById('savedChecklistMore');
+  const moreWrap=document.getElementById('savedChecklistMoreWrap');
+  if(!btn||!overlay||!closeBtn||!search||!list||!statusEl||!moreBtn||!moreWrap||typeof firebase==='undefined') return;
 
-  let records=[]; let loading=false;
-  const norm=s=>String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
+  const PAGE_SIZE=50;
+  let records=[];
+  let loading=false;
+  let hasMore=true;
+  let lastSavedAt='';
+  let searchTimer=null;
+  let searchRequest=0;
+
+  const norm=s=>String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,' ').trim();
   const status=t=>{statusEl.textContent=t||''};
   function decodeValue(v){
     if(v==null) return null;
@@ -6013,40 +6048,125 @@ document.addEventListener("change", (e) => {
     return null;
   }
   function formatDate(value){const d=new Date(value||'');return Number.isFinite(d.getTime())?d.toLocaleString('fr-FR'):'date inconnue'}
-  function openOverlay(){overlay.classList.add('show');overlay.setAttribute('aria-hidden','false');search.value='';loadAll();setTimeout(()=>search.focus(),50)}
-  function closeOverlay(){overlay.classList.remove('show');overlay.setAttribute('aria-hidden','true')}
-  function visibleRecords(){const q=norm(search.value.trim());return q?records.filter(r=>norm([r.clientName,r.clientId,r.ownerEmail,r.orderNo,r.pvmanEmail,r.appointmentDate].join(' ')).includes(q)):records}
-  function render(){
-    list.replaceChildren(); const rows=visibleRecords();
-    if(!rows.length){status(records.length?'Aucun dossier correspondant à la recherche.':'Aucune checklist sauvegardée.');return}
-    status(rows.length+' checklist'+(rows.length>1?'s':'')+' trouvée'+(rows.length>1?'s':''));
+  function haystack(r){return norm([r.clientName,r.clientId,r.ownerEmail,r.orderNo,r.pvmanEmail,r.appointmentDate].join(' '))}
+  function firstSearchKey(q){return norm(q).split(/\s+/).find(x=>x.length>=2)||''}
+  function docRecord(doc){
+    if(!doc?.fields) return null;
+    const d=decodeValue({mapValue:{fields:doc.fields||{}}})||{};
+    if(!d.payloadJson) return null;
+    return {...d,_name:doc.name||''};
+  }
+  function dedupe(rows){
+    const map=new Map();
+    for(const r of rows||[]){
+      const key=r._name||[r.clientId,r.appointmentId,r.serviceId,r.savedAt].join('|');
+      if(!map.has(key) || (Date.parse(r.savedAt||0)||0)>(Date.parse(map.get(key).savedAt||0)||0)) map.set(key,r);
+    }
+    return Array.from(map.values()).sort((a,b)=>(Date.parse(b.savedAt||0)||0)-(Date.parse(a.savedAt||0)||0));
+  }
+  function setMoreVisible(show){moreWrap.classList.toggle('hidden',!show);moreBtn.disabled=loading||!hasMore}
+  function render(rows=records, message=''){
+    list.replaceChildren();
+    if(!rows.length){status(message||'Aucune checklist sauvegardée.');setMoreVisible(!search.value.trim()&&hasMore);return}
+    status(message||`${rows.length} dossier${rows.length>1?'s':''} chargé${rows.length>1?'s':''}`);
     for(const r of rows){
       const card=document.createElement('div');card.className='saved-checklist-card';
       const main=document.createElement('div');main.className='saved-checklist-card-main';
       const title=document.createElement('div');title.className='saved-checklist-card-title';title.textContent=r.clientName||('Client '+(r.clientId||''));
       const info=document.createElement('div');info.className='saved-checklist-card-info';
-      const bits=[]; if(r.appointmentDate)bits.push('RDV '+String(r.appointmentDate).split('-').reverse().join('/')); if(r.orderNo)bits.push('OS '+r.orderNo); if(r.ownerEmail)bits.push('Enregistré par '+r.ownerEmail); bits.push('Sauvegarde '+formatDate(r.savedAt)); info.textContent=bits.filter(Boolean).join(' · ');
+      const bits=[];
+      if(r.appointmentDate)bits.push('RDV '+String(r.appointmentDate).split('-').reverse().join('/'));
+      if(r.orderNo)bits.push('OS '+r.orderNo);
+      if(r.ownerEmail)bits.push('Enregistré par '+r.ownerEmail);
+      bits.push('Sauvegarde '+formatDate(r.savedAt));
+      info.textContent=bits.filter(Boolean).join(' · ');
       main.append(title,info);
       const open=document.createElement('button');open.type='button';open.className='primary';open.textContent='Ouvrir';open.onclick=()=>openRecord(r);
       card.append(main,open);list.append(card);
     }
+    setMoreVisible(!search.value.trim()&&hasMore);
   }
-  async function loadAll(){
-    if(loading)return; const user=firebase.auth().currentUser; if(!user){status('Connexion requise.');return}
-    loading=true;records=[];list.replaceChildren();status('Chargement des checklists sauvegardées…');
+  async function runQuery(structuredQuery){
+    const user=firebase.auth().currentUser;
+    if(!user) throw Error('Connexion requise.');
+    const token=await user.getIdToken();
+    const project=firebase.app().options.projectId;
+    const url=`https://firestore.googleapis.com/v1/projects/${encodeURIComponent(project)}/databases/licences/documents:runQuery`;
+    const response=await fetch(url,{
+      method:'POST',
+      headers:{Authorization:'Bearer '+token,'Content-Type':'application/json'},
+      body:JSON.stringify({structuredQuery}),
+      cache:'no-store'
+    });
+    const body=await response.json().catch(()=>[]);
+    if(!response.ok) throw Error(body?.error?.message||`Firebase HTTP ${response.status}`);
+    const out=[];
+    for(const item of (Array.isArray(body)?body:[])){
+      const r=docRecord(item.document);
+      if(r) out.push(r);
+    }
+    return out;
+  }
+  async function loadRecent(reset=true){
+    if(loading)return;
+    const user=firebase.auth().currentUser;
+    if(!user){status('Connexion requise.');return}
+    loading=true;
+    if(reset){records=[];lastSavedAt='';hasMore=true;list.replaceChildren();status('Chargement des 50 checklists les plus récentes…')}
+    else status('Chargement de 50 checklists plus anciennes…');
+    moreBtn.disabled=true;
     try{
-      const token=await user.getIdToken();const project=firebase.app().options.projectId;let pageToken='';
-      do{
-        const base=`https://firestore.googleapis.com/v1/projects/${encodeURIComponent(project)}/databases/licences/documents/pvman_checklists?pageSize=100`;
-        const url=base+(pageToken?('&pageToken='+encodeURIComponent(pageToken)):'');
-        const response=await fetch(url,{headers:{Authorization:'Bearer '+token},cache:'no-store'});
-        const body=await response.json().catch(()=>({})); if(!response.ok)throw Error(body?.error?.message||`Firebase HTTP ${response.status}`);
-        for(const doc of (body.documents||[])){const d=decodeValue({mapValue:{fields:doc.fields||{}}})||{};if(d.payloadJson)records.push({...d,_name:doc.name||''})}
-        pageToken=body.nextPageToken||'';
-      }while(pageToken);
-      records.sort((a,b)=>(Date.parse(b.savedAt||0)||0)-(Date.parse(a.savedAt||0)||0));render();
-    }catch(e){console.error('Lecture historique checklists Firebase',e);status('Impossible de lire les checklists : '+(e.message||'erreur Firebase'))}finally{loading=false}
+      const q={
+        from:[{collectionId:'pvman_checklists'}],
+        orderBy:[{field:{fieldPath:'savedAt'},direction:'DESCENDING'}],
+        limit:PAGE_SIZE
+      };
+      if(!reset && lastSavedAt){q.startAt={values:[{stringValue:lastSavedAt}],before:false}}
+      const page=await runQuery(q);
+      const beforeCount=records.length;
+      records=dedupe(reset?page:records.concat(page));
+      if(page.length<PAGE_SIZE || records.length===beforeCount) hasMore=false;
+      const tail=page[page.length-1];
+      if(tail?.savedAt) lastSavedAt=tail.savedAt;
+      render(records,`${records.length} dossier${records.length>1?'s':''} chargé${records.length>1?'s':''} · historique paginé`);
+    }catch(e){
+      console.error('Lecture historique checklists Firebase',e);
+      status('Impossible de lire les checklists : '+(e.message||'erreur Firebase'));
+    }finally{loading=false;setMoreVisible(!search.value.trim()&&hasMore)}
   }
+  async function searchRemote(){
+    const requestId=++searchRequest;
+    const raw=search.value.trim();
+    const qnorm=norm(raw);
+    if(!raw){await loadRecent(true);return}
+    const local=records.filter(r=>haystack(r).includes(qnorm));
+    const key=firstSearchKey(raw);
+    if(!key){render(local,'Tape au moins 2 caractères pour lancer une recherche Firebase.');setMoreVisible(false);return}
+    status('Recherche Firebase ciblée…');list.replaceChildren();setMoreVisible(false);
+    try{
+      const remote=await runQuery({
+        from:[{collectionId:'pvman_checklists'}],
+        where:{fieldFilter:{field:{fieldPath:'searchKeys'},op:'ARRAY_CONTAINS',value:{stringValue:key}}},
+        limit:50
+      });
+      if(requestId!==searchRequest)return;
+      const rows=dedupe(local.concat(remote)).filter(r=>haystack(r).includes(qnorm)).slice(0,50);
+      render(rows,rows.length?`${rows.length} résultat${rows.length>1?'s':''} · recherche Firebase ciblée`:'Aucun dossier correspondant.');
+      setMoreVisible(false);
+    }catch(e){
+      console.error('Recherche ciblée checklists Firebase',e);
+      if(requestId!==searchRequest)return;
+      render(local,local.length?`${local.length} résultat${local.length>1?'s':''} parmi les dossiers déjà chargés`:'Recherche Firebase impossible : '+(e.message||'erreur Firebase'));
+      setMoreVisible(false);
+    }
+  }
+  function openOverlay(){
+    overlay.classList.add('show');overlay.setAttribute('aria-hidden','false');
+    search.value='';
+    loadRecent(true);
+    setTimeout(()=>search.focus(),50);
+  }
+  function closeOverlay(){overlay.classList.remove('show');overlay.setAttribute('aria-hidden','true')}
   async function openRecord(r){
     let payload;try{payload=JSON.parse(r.payloadJson||'')}catch(e){alert('Cette sauvegarde est illisible.');return}
     const input=document.getElementById('clientIdentity');const previous=String(input?.value||'').trim();
@@ -6055,9 +6175,20 @@ document.addEventListener("change", (e) => {
     window.pvmanSelectedClient={clientId:r.clientId||'',appointmentId:r.appointmentId||'',serviceId:r.serviceId||'',orderNo:r.orderNo||'',pvmanEmail:r.pvmanEmail||'',date:r.appointmentDate||'',time:r.appointmentTime||'',address:''};
     if(input){input.value=r.clientName||payload.client||'';input.dispatchEvent(new Event('input',{bubbles:true}))}
     const ok=!!window.CBAT_CHECKLIST_STORAGE?.restorePayload?.(payload,(r.clientName||payload.client||''));
-    if(ok){const d=new Date(r.savedAt||payload.savedAt||Date.now());window.CBAT_CHECKLIST_STORAGE?.setStatus?.(`Reprise Firebase · ${d.toLocaleString('fr-FR')}`,'ok');closeOverlay()}else alert('Impossible de restaurer cette checklist.')
+    if(ok){
+      const d=new Date(r.savedAt||payload.savedAt||Date.now());
+      window.CBAT_CHECKLIST_STORAGE?.setStatus?.(`Reprise Firebase · ${d.toLocaleString('fr-FR')}`,'ok');
+      closeOverlay();
+      // Une ancienne sauvegarde ouverte avec v2.70 est réenregistrée : elle reçoit ainsi l’index de recherche optimisé.
+      setTimeout(()=>window.CBAT_CHECKLIST_CLOUD?.scheduleSave?.(null,150),200);
+    }else alert('Impossible de restaurer cette checklist.');
   }
-  btn.addEventListener('click',openOverlay);closeBtn.addEventListener('click',closeOverlay);overlay.addEventListener('click',e=>{if(e.target===overlay)closeOverlay()});search.addEventListener('input',render);
+
+  btn.addEventListener('click',openOverlay);
+  closeBtn.addEventListener('click',closeOverlay);
+  overlay.addEventListener('click',e=>{if(e.target===overlay)closeOverlay()});
+  moreBtn.addEventListener('click',()=>loadRecent(false));
+  search.addEventListener('input',()=>{clearTimeout(searchTimer);searchTimer=setTimeout(searchRemote,350)});
 })();
 </script>
 </body>

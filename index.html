@@ -980,6 +980,13 @@
         .client-identity input:focus{border-color:#93c5fd;box-shadow:0 0 0 3px rgba(59,130,246,.22)}
         .client-identity input::placeholder{color:rgba(191,219,254,.55);font-weight:500}
         @media(max-width:620px){.client-identity{align-items:stretch;flex-direction:column;gap:7px}.client-identity label{white-space:normal}.client-identity input{width:100%}}
+        /* v2.63 : proposition client + sauvegarde locale automatique */
+        .client-save-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+        .client-save-actions button{padding:9px 11px;font-size:12px;white-space:nowrap}
+        .client-save-status{font-size:12px;color:#93c5fd;min-width:150px}
+        .client-save-status.ok{color:#86efac}
+        .client-save-status.warn{color:#fcd34d}
+        @media(max-width:620px){.client-save-actions{width:100%}.client-save-actions button{flex:0 0 auto}.client-save-status{width:100%}}
 
 </style>
 </head>
@@ -1048,14 +1055,19 @@ document.addEventListener("DOMContentLoaded", () => {
   <button class="ghost btn-small" id="btnMemo" type="button">Mémo</button>
   <button class="ghost btn-small" id="btnInfoSup" type="button">Info sup</button>
   <button class="ghost btn-small" id="btnMode" type="button">Mode 1 par 1</button>
-  <div class="pill">v2.62</div>
+  <div class="pill">v2.63</div>
   <div class="pill auth-user hidden" id="authUserLabel"></div>
   <button class="ghost btn-small hidden" id="logoutBtn" type="button">Déconnexion</button>
 </div>
 </div>
 <div class="client-identity">
   <label for="clientIdentity">Client / Référence chantier</label>
-  <input id="clientIdentity" type="text" autocomplete="off" placeholder="Ex. DUPONT — Paris 15" />
+  <input id="clientIdentity" type="text" autocomplete="off" list="savedClientList" placeholder="Ex. DUPONT — Paris 15" />
+  <datalist id="savedClientList"></datalist>
+  <div class="client-save-actions">
+    <button class="ghost" id="loadClientChecklistBtn" type="button" disabled>Charger</button>
+    <span class="client-save-status" id="clientSaveStatus">Saisir le nom du client</span>
+  </div>
 </div>
 <div class="card">
 <div class="section-title" id="sectionTitle">Informations générales</div>
@@ -5175,6 +5187,242 @@ applyAlternatingRows();
         buildRecap();
 
     </script>
+
+<script>
+// v2.63 : sauvegarde locale automatique, client par client.
+(() => {
+  const INDEX_KEY = "CBAT_CHECKLIST_CLIENTS_V1";
+  const SAVE_PREFIX = "CBAT_CHECKLIST_SAVE_V1::";
+  const clientInput = document.getElementById("clientIdentity");
+  const clientList = document.getElementById("savedClientList");
+  const loadBtn = document.getElementById("loadClientChecklistBtn");
+  const statusEl = document.getElementById("clientSaveStatus");
+  let activeSaveClient = "";
+  let restoringChecklist = false;
+  let autosaveTimer = null;
+
+  function cleanName(value){ return String(value || "").trim().replace(/\s+/g, " "); }
+  function normalizedName(value){ return cleanName(value).toLocaleLowerCase("fr-FR"); }
+  function storageKey(name){ return SAVE_PREFIX + encodeURIComponent(normalizedName(name)); }
+
+  function readIndex(){
+    try {
+      const data = JSON.parse(localStorage.getItem(INDEX_KEY) || "[]");
+      return Array.isArray(data) ? data : [];
+    } catch(e){ return []; }
+  }
+  function writeIndex(items){
+    try { localStorage.setItem(INDEX_KEY, JSON.stringify(items)); } catch(e){}
+  }
+  function findSavedClient(name){
+    const key = normalizedName(name);
+    return readIndex().find(item => normalizedName(item?.name) === key) || null;
+  }
+  function refreshClientSuggestions(){
+    if (!clientList) return;
+    const items = readIndex().slice().sort((a,b) => String(b.updatedAt||"").localeCompare(String(a.updatedAt||"")));
+    clientList.innerHTML = items.map(item => `<option value="${String(item.name||"").replace(/&/g,"&amp;").replace(/"/g,"&quot;")}"></option>`).join("");
+  }
+  function setSaveStatus(message, type=""){
+    if (!statusEl) return;
+    statusEl.textContent = message || "";
+    statusEl.classList.remove("ok","warn");
+    if(type) statusEl.classList.add(type);
+  }
+  function updateLoadButton(){
+    const name = cleanName(clientInput?.value);
+    const saved = name ? findSavedClient(name) : null;
+    if (loadBtn) loadBtn.disabled = !saved;
+    if (!name) setSaveStatus("Saisir le nom du client");
+    else if (saved) {
+      const d = saved.updatedAt ? new Date(saved.updatedAt) : null;
+      setSaveStatus(d && !isNaN(d) ? `Sauvegarde trouvée · ${d.toLocaleString("fr-FR", {dateStyle:"short", timeStyle:"short"})}` : "Sauvegarde trouvée", "ok");
+    } else setSaveStatus("Nouveau client · sauvegarde automatique", "warn");
+  }
+
+  function rowIdentity(row, rowIndex){
+    if (!row) return `global-${rowIndex}`;
+    return row.getAttribute("data-appliance") || row.getAttribute("data-general") || row.getAttribute("data-label") || row.getAttribute("data-block") || `row-${rowIndex}`;
+  }
+  function assignSaveKeys(){
+    const rows = Array.from(document.querySelectorAll("#list .row"));
+    rows.forEach((row, rowIndex) => {
+      const rowId = rowIdentity(row, rowIndex);
+      const fields = Array.from(row.querySelectorAll("input, select, textarea"));
+      fields.forEach((el, fieldIndex) => {
+        if (el.dataset.checklistSaveKey) return;
+        let base = el.id || el.name || el.getAttribute("data-work-comment-for") || el.getAttribute("data-depose-comment-for") || "";
+        if (!base) base = `${el.tagName.toLowerCase()}-${fieldIndex}`;
+        const suffix = (el.type === "radio" || el.type === "checkbox") ? `::${el.value || fieldIndex}` : "";
+        el.dataset.checklistSaveKey = `${rowId}::${base}${suffix}`;
+      });
+    });
+  }
+
+  function collectFields(){
+    assignSaveKeys();
+    const fields = {};
+    document.querySelectorAll("#list [data-checklist-save-key]").forEach(el => {
+      const key = el.dataset.checklistSaveKey;
+      if (!key) return;
+      fields[key] = {
+        tag: el.tagName,
+        type: el.type || "",
+        value: el.value ?? "",
+        checked: !!el.checked
+      };
+    });
+    return fields;
+  }
+
+  function snapshotChecklist(){
+    return {
+      version: "2.63",
+      client: cleanName(clientInput?.value),
+      savedAt: new Date().toISOString(),
+      wizardIndex: (typeof wizardIndex !== "undefined" ? wizardIndex : 0),
+      fields: collectFields(),
+      memoState: (typeof memoState !== "undefined" ? JSON.parse(JSON.stringify(memoState)) : {}),
+      infoSupState: (typeof infoSupState !== "undefined" ? JSON.parse(JSON.stringify(infoSupState)) : {}),
+      infoSupValidated: (typeof infoSupValidated !== "undefined" ? !!infoSupValidated : false),
+      finalButtonPressed: (typeof finalButtonPressed !== "undefined" ? !!finalButtonPressed : false)
+    };
+  }
+
+  function saveChecklistNow(){
+    if (restoringChecklist) return;
+    const name = cleanName(clientInput?.value);
+    if (!name) return;
+    activeSaveClient = name;
+    const payload = snapshotChecklist();
+    try {
+      localStorage.setItem(storageKey(name), JSON.stringify(payload));
+      const items = readIndex().filter(item => normalizedName(item?.name) !== normalizedName(name));
+      items.push({name, updatedAt: payload.savedAt});
+      writeIndex(items);
+      refreshClientSuggestions();
+      if (normalizedName(clientInput?.value) === normalizedName(name)) {
+        const now = new Date(payload.savedAt);
+        setSaveStatus(`Sauvegardé automatiquement · ${now.toLocaleTimeString("fr-FR", {hour:"2-digit", minute:"2-digit"})}`, "ok");
+        if (loadBtn) loadBtn.disabled = false;
+      }
+    } catch(error){
+      console.error("Sauvegarde checklist impossible", error);
+      setSaveStatus("Sauvegarde impossible", "warn");
+    }
+  }
+
+  function scheduleChecklistAutosave(delay=450){
+    if (restoringChecklist) return;
+    clearTimeout(autosaveTimer);
+    autosaveTimer = setTimeout(saveChecklistNow, delay);
+  }
+
+  function restoreObject(target, source){
+    if (!target || !source || typeof source !== "object") return;
+    Object.keys(target).forEach(k => delete target[k]);
+    Object.entries(source).forEach(([k,v]) => target[k] = v);
+  }
+
+  function loadChecklistForClient(name){
+    const clean = cleanName(name);
+    if (!clean) return false;
+    let payload;
+    try { payload = JSON.parse(localStorage.getItem(storageKey(clean)) || "null"); } catch(e){ payload = null; }
+    if (!payload || !payload.fields) return false;
+
+    restoringChecklist = true;
+    try {
+      activeSaveClient = clean;
+      if (clientInput) clientInput.value = payload.client || clean;
+      if (typeof updateClientIdentity === "function") updateClientIdentity();
+
+      // Les champs dynamiques doivent exister avant restauration.
+      try { injectExtraInputs(); injectNonIkeaLengthInputs(); injectMitigeurHeightInputs(); injectWidthSelectors(); injectWorkCommentInputs(); injectDeposeCommentInputs(); } catch(e){}
+      assignSaveKeys();
+      document.querySelectorAll("#list [data-checklist-save-key]").forEach(el => {
+        const saved = payload.fields[el.dataset.checklistSaveKey];
+        if (!saved) return;
+        if (el.type === "radio" || el.type === "checkbox") el.checked = !!saved.checked;
+        else el.value = saved.value ?? "";
+      });
+
+      if (typeof memoState !== "undefined") restoreObject(memoState, payload.memoState || {});
+      if (typeof infoSupState !== "undefined") restoreObject(infoSupState, payload.infoSupState || {});
+      if (typeof infoSupValidated !== "undefined") infoSupValidated = !!payload.infoSupValidated;
+      if (typeof finalButtonPressed !== "undefined") finalButtonPressed = !!payload.finalButtonPressed;
+
+      try {
+        updatePlaqueHotteConstraint();
+        syncGazChiffrageOptions();
+        syncNonIkeaLengthInputs();
+        syncMitigeurHeightInputs();
+        syncWidthSelectAvailability();
+        syncChiffrageSelectAvailability();
+        syncWorkCommentInputs();
+        syncDeposeCommentInputs();
+        syncOtherNonIkeaLabels();
+        buildRecap();
+        if (typeof renderMemoItems === "function") renderMemoItems("memo");
+        if (typeof wizardSteps !== "undefined") {
+          wizardSteps = buildWizardSteps();
+          const requested = Number.isInteger(payload.wizardIndex) ? payload.wizardIndex : 0;
+          wizardIndex = clampToVisible(Math.max(0, Math.min(requested, wizardSteps.length - 1)), +1);
+          showWizardStep(wizardIndex);
+        }
+        updateCopyVisibility();
+      } catch(error){ console.error("Restauration partielle checklist", error); }
+
+      const d = payload.savedAt ? new Date(payload.savedAt) : null;
+      setSaveStatus(d && !isNaN(d) ? `Reprise chargée · ${d.toLocaleString("fr-FR", {dateStyle:"short", timeStyle:"short"})}` : "Reprise chargée", "ok");
+      if (loadBtn) loadBtn.disabled = false;
+      return true;
+    } finally {
+      restoringChecklist = false;
+    }
+  }
+
+  clientInput?.addEventListener("input", () => updateLoadButton());
+  clientInput?.addEventListener("change", () => {
+    const name = cleanName(clientInput.value);
+    const saved = findSavedClient(name);
+    if (!saved) {
+      activeSaveClient = name;
+      scheduleChecklistAutosave(100);
+    }
+    updateLoadButton();
+  });
+  loadBtn?.addEventListener("click", () => {
+    if (!loadChecklistForClient(clientInput?.value)) setSaveStatus("Aucune sauvegarde pour ce client", "warn");
+  });
+
+  document.addEventListener("change", e => {
+    if (e.target?.id === "clientIdentity") return;
+    if (e.target?.closest?.("#memoOverlay")) return; // mémos sauvés lors de Valider ci-dessous
+    scheduleChecklistAutosave();
+  });
+  document.addEventListener("input", e => {
+    if (e.target?.id === "clientIdentity") return;
+    if (!e.target?.closest?.("#list")) return;
+    scheduleChecklistAutosave();
+  });
+  document.getElementById("memoDone")?.addEventListener("click", () => setTimeout(() => scheduleChecklistAutosave(50), 0));
+  document.getElementById("wizardNext")?.addEventListener("click", () => setTimeout(() => scheduleChecklistAutosave(80), 0));
+  document.getElementById("wizardPrev")?.addEventListener("click", () => setTimeout(() => scheduleChecklistAutosave(80), 0));
+  document.getElementById("btnReset")?.addEventListener("click", () => setTimeout(() => scheduleChecklistAutosave(80), 0));
+  window.addEventListener("beforeunload", () => { try { saveChecklistNow(); } catch(e){} });
+
+  // Initialisation après la création des champs dynamiques du formulaire.
+  setTimeout(() => {
+    assignSaveKeys();
+    refreshClientSuggestions();
+    updateLoadButton();
+  }, 0);
+
+  // Expose seulement ce qui peut être utile aux évolutions futures.
+  window.CBAT_CHECKLIST_STORAGE = { save: saveChecklistNow, load: loadChecklistForClient, refreshClients: refreshClientSuggestions };
+})();
+</script>
 
 <script>
 // v2.62 : si le technicien choisit une Cuisinière / Piano,

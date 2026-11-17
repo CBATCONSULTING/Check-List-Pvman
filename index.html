@@ -1027,6 +1027,18 @@
         .saved-checklist-more.hidden{display:none !important}
         .saved-checklist-more button{min-width:220px}
         @media(max-width:680px){.saved-checklist-card{align-items:stretch;flex-direction:column}.saved-checklist-card button{width:100%}.saved-checklist-more button{width:100%}}
+
+        /* v2.72 : purge manuelle des très anciennes checklists, réservée à support */
+        .saved-checklist-purge{margin-top:18px;padding:14px;border:1px solid rgba(239,68,68,.38);border-radius:12px;background:rgba(127,29,29,.12)}
+        .saved-checklist-purge.hidden{display:none !important}
+        .saved-checklist-purge-title{font-weight:900;color:#fecaca;margin-bottom:6px}
+        .saved-checklist-purge-help{font-size:12px;line-height:1.4;color:var(--muted);margin-bottom:10px}
+        .saved-checklist-purge-controls{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+        .saved-checklist-purge select{height:36px;border-radius:10px;border:1px solid rgba(255,255,255,.16);background:rgba(0,0,0,.2);color:var(--text);padding:0 10px}
+        .saved-checklist-purge select option{color:#111;background:#fff}
+        .saved-checklist-purge-status{font-size:12px;color:#fca5a5;margin-top:9px;line-height:1.4}
+        .saved-checklist-purge .purge-danger{background:rgba(178,58,58,.28);border:1px solid rgba(248,113,113,.62)}
+        .saved-checklist-purge .purge-danger:disabled{opacity:.45;cursor:not-allowed}
 </style>
 </head>
 <body>
@@ -1094,7 +1106,7 @@ document.addEventListener("DOMContentLoaded", () => {
   <button class="ghost btn-small" id="btnMemo" type="button">Mémo</button>
   <button class="ghost btn-small" id="btnInfoSup" type="button">Info sup</button>
   <button class="ghost btn-small" id="btnMode" type="button">Mode 1 par 1</button>
-  <div class="pill">v2.70</div>
+  <div class="pill">v2.72</div>
   <div class="pill auth-user hidden" id="authUserLabel"></div>
   <button class="ghost btn-small hidden" id="logoutBtn" type="button">Déconnexion</button>
 </div>
@@ -5374,7 +5386,7 @@ applyAlternatingRows();
 
   function snapshotChecklist(){
     return {
-      version: "2.70",
+      version: "2.71",
       client: cleanName(clientInput?.value),
       savedAt: new Date().toISOString(),
       wizardIndex: (typeof wizardIndex !== "undefined" ? wizardIndex : 0),
@@ -5663,7 +5675,7 @@ applyAlternatingRows();
       const body = {
         fields: {
           schemaVersion: fieldInt(1),
-          formVersion: fieldString(payload.version || "2.70"),
+          formVersion: fieldString(payload.version || "2.71"),
           clientName: fieldString(payload.client || ""),
           clientId: fieldString(r.clientId || ""),
           appointmentId: fieldString(r.appointmentId || ""),
@@ -5819,17 +5831,50 @@ document.addEventListener("change", (e) => {
     updateWizardNavState();
 });
 
-// v2.62 : rappel spécifique à la hotte intégrable.
+// v2.72 : rappel spécifique à la hotte intégrable dans une pop-up intégrée.
 (() => {
   const btn = document.getElementById("hotteEvacAlertBtn");
-  if (!btn) return;
+  const overlay = document.getElementById("hotteEvacOverlay");
+  const closeBtn = document.getElementById("hotteEvacClose");
+  if (!btn || !overlay || !closeBtn) return;
+
+  const open = () => {
+    overlay.classList.add("show");
+    overlay.setAttribute("aria-hidden", "false");
+    setTimeout(() => closeBtn.focus(), 0);
+  };
+  const close = () => {
+    overlay.classList.remove("show");
+    overlay.setAttribute("aria-hidden", "true");
+    btn.focus();
+  };
+
   btn.addEventListener("click", (event) => {
     event.preventDefault();
     event.stopPropagation();
-    window.alert("ATTENTION, si hotte recyclage, prévoir suffisamment d'espace pour l'évacuation de l'air");
+    open();
+  });
+  closeBtn.addEventListener("click", close);
+  overlay.addEventListener("click", (event) => { if (event.target === overlay) close(); });
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape" && overlay.classList.contains("show")) close();
   });
 })();
 </script>
+
+<div class="memo-overlay" id="hotteEvacOverlay" aria-hidden="true">
+  <div class="memo-modal" role="dialog" aria-modal="true" aria-labelledby="hotteEvacTitle" style="width:min(620px,96vw)">
+    <div class="memo-head">
+      <h2 id="hotteEvacTitle">⚠ Attention évacuation</h2>
+    </div>
+    <div style="padding:16px 18px;border:1px solid rgba(245,158,11,.45);background:rgba(245,158,11,.12);border-radius:14px;font-size:17px;line-height:1.5;font-weight:750;color:#fff7d6">
+      Si hotte recyclage, prévoir suffisamment d'espace pour l'évacuation de l'air.
+    </div>
+    <div class="memo-foot">
+      <button class="primary" id="hotteEvacClose" type="button">OK</button>
+    </div>
+  </div>
+</div>
 
 <div class="memo-overlay" id="savedChecklistOverlay" aria-hidden="true">
   <div class="memo-modal" role="dialog" aria-modal="true" aria-labelledby="savedChecklistTitle">
@@ -5842,6 +5887,20 @@ document.addEventListener("change", (e) => {
     <div class="saved-checklist-list" id="savedChecklistList"></div>
     <div class="saved-checklist-more" id="savedChecklistMoreWrap">
       <button class="ghost" id="savedChecklistMore" type="button">Charger 50 plus anciennes</button>
+    </div>
+    <div class="saved-checklist-purge hidden" id="savedChecklistPurge">
+      <div class="saved-checklist-purge-title">Purge des très vieux dossiers — Support uniquement</div>
+      <div class="saved-checklist-purge-help">Suppression manuelle uniquement. Aucun dossier n’est supprimé automatiquement. Commence par vérifier le nombre de dossiers concernés.</div>
+      <div class="saved-checklist-purge-controls">
+        <select id="savedChecklistPurgeAge" aria-label="Ancienneté minimale des dossiers à purger">
+          <option value="36">Plus de 36 mois</option>
+          <option value="60" selected>Plus de 60 mois</option>
+          <option value="84">Plus de 84 mois</option>
+        </select>
+        <button class="ghost" id="savedChecklistPurgePreview" type="button">Vérifier</button>
+        <button class="purge-danger" id="savedChecklistPurgeRun" type="button" disabled>Supprimer ces dossiers</button>
+      </div>
+      <div class="saved-checklist-purge-status" id="savedChecklistPurgeStatus"></div>
     </div>
   </div>
 </div>
@@ -6179,7 +6238,7 @@ document.addEventListener("change", (e) => {
       const d=new Date(r.savedAt||payload.savedAt||Date.now());
       window.CBAT_CHECKLIST_STORAGE?.setStatus?.(`Reprise Firebase · ${d.toLocaleString('fr-FR')}`,'ok');
       closeOverlay();
-      // Une ancienne sauvegarde ouverte avec v2.70 est réenregistrée : elle reçoit ainsi l’index de recherche optimisé.
+      // Une ancienne sauvegarde ouverte avec v2.72 est réenregistrée : elle reçoit ainsi l’index de recherche optimisé.
       setTimeout(()=>window.CBAT_CHECKLIST_CLOUD?.scheduleSave?.(null,150),200);
     }else alert('Impossible de restaurer cette checklist.');
   }
@@ -6189,6 +6248,150 @@ document.addEventListener("change", (e) => {
   overlay.addEventListener('click',e=>{if(e.target===overlay)closeOverlay()});
   moreBtn.addEventListener('click',()=>loadRecent(false));
   search.addEventListener('input',()=>{clearTimeout(searchTimer);searchTimer=setTimeout(searchRemote,350)});
+})();
+</script>
+
+<script>
+// v2.72 : purge manuelle sécurisée des anciennes checklists.
+// Le bouton n'est visible que pour support@challengebat.fr.
+// IMPORTANT : les règles Firestore doivent aussi réserver DELETE à ce compte.
+(()=>{
+  const panel=document.getElementById('savedChecklistPurge');
+  const ageSel=document.getElementById('savedChecklistPurgeAge');
+  const previewBtn=document.getElementById('savedChecklistPurgePreview');
+  const runBtn=document.getElementById('savedChecklistPurgeRun');
+  const statusEl=document.getElementById('savedChecklistPurgeStatus');
+  const reopenBtn=document.getElementById('openSavedChecklistBtn');
+  if(!panel||!ageSel||!previewBtn||!runBtn||!statusEl||typeof firebase==='undefined') return;
+
+  const SUPPORT_EMAIL='support@challengebat.fr';
+  let previewState=null;
+  const setStatus=t=>{statusEl.textContent=t||''};
+  const currentUser=()=>firebase.auth().currentUser;
+  const isSupport=()=>String(currentUser()?.email||'').trim().toLowerCase()===SUPPORT_EMAIL;
+  const cutoffIso=months=>{const d=new Date();d.setUTCMonth(d.getUTCMonth()-Number(months||60));return d.toISOString()};
+
+  function decodeValue(v){
+    if(v==null)return null;
+    if('nullValue'in v)return null;
+    if('stringValue'in v)return v.stringValue;
+    if('timestampValue'in v)return v.timestampValue;
+    if('booleanValue'in v)return v.booleanValue;
+    if('integerValue'in v)return Number(v.integerValue);
+    if('doubleValue'in v)return Number(v.doubleValue);
+    if('arrayValue'in v)return (v.arrayValue.values||[]).map(decodeValue);
+    if('mapValue'in v)return Object.fromEntries(Object.entries(v.mapValue.fields||{}).map(([k,x])=>[k,decodeValue(x)]));
+    return null;
+  }
+  function rowFromDoc(doc){
+    if(!doc?.fields)return null;
+    const d=decodeValue({mapValue:{fields:doc.fields}})||{};
+    return {...d,_name:doc.name||''};
+  }
+  async function authFetch(path,options={}){
+    const user=currentUser();
+    if(!user)throw Error('Connexion requise.');
+    if(!isSupport())throw Error('Purge réservée à support@challengebat.fr.');
+    const token=await user.getIdToken();
+    const project=firebase.app().options.projectId;
+    const url=`https://firestore.googleapis.com/v1/projects/${encodeURIComponent(project)}/databases/licences/${path}`;
+    const response=await fetch(url,{...options,headers:{Authorization:'Bearer '+token,'Content-Type':'application/json',...(options.headers||{})},cache:'no-store'});
+    let body=null;try{body=await response.json()}catch(e){}
+    if(!response.ok)throw Error(body?.error?.message||`Firebase HTTP ${response.status}`);
+    return body;
+  }
+  function oldQuery(cutoff,limit=10){
+    return {
+      from:[{collectionId:'pvman_checklists'}],
+      where:{fieldFilter:{field:{fieldPath:'savedAt'},op:'LESS_THAN_OR_EQUAL',value:{stringValue:cutoff}}},
+      orderBy:[{field:{fieldPath:'savedAt'},direction:'ASCENDING'}],
+      limit
+    };
+  }
+  async function countOld(cutoff){
+    const body=await authFetch('documents:runAggregationQuery',{
+      method:'POST',
+      body:JSON.stringify({structuredAggregationQuery:{
+        structuredQuery:{
+          from:[{collectionId:'pvman_checklists'}],
+          where:{fieldFilter:{field:{fieldPath:'savedAt'},op:'LESS_THAN_OR_EQUAL',value:{stringValue:cutoff}}}
+        },
+        aggregations:[{alias:'total',count:{}}]
+      }})
+    });
+    const arr=Array.isArray(body)?body:[];
+    return Number(arr[0]?.result?.aggregateFields?.total?.integerValue||0);
+  }
+  async function sampleOld(cutoff){
+    const body=await authFetch('documents:runQuery',{method:'POST',body:JSON.stringify({structuredQuery:oldQuery(cutoff,8)})});
+    return (Array.isArray(body)?body:[]).map(x=>rowFromDoc(x.document)).filter(Boolean);
+  }
+  async function nextBatch(cutoff){
+    const body=await authFetch('documents:runQuery',{method:'POST',body:JSON.stringify({structuredQuery:oldQuery(cutoff,50)})});
+    return (Array.isArray(body)?body:[]).map(x=>x.document).filter(Boolean);
+  }
+  async function deleteDoc(docName){
+    if(!docName) return false;
+    const user=currentUser();
+    if(!user||!isSupport())throw Error('Purge non autorisée.');
+    const token=await user.getIdToken();
+    const url='https://firestore.googleapis.com/v1/'+docName;
+    const response=await fetch(url,{method:'DELETE',headers:{Authorization:'Bearer '+token},cache:'no-store'});
+    if(!response.ok){let body={};try{body=await response.json()}catch(e){};throw Error(body?.error?.message||`Firebase HTTP ${response.status}`)}
+    return true;
+  }
+
+  async function preview(){
+    previewState=null;runBtn.disabled=true;
+    if(!isSupport()){setStatus('Purge réservée à support@challengebat.fr.');return}
+    const months=Number(ageSel.value||60),cutoff=cutoffIso(months);
+    setStatus('Vérification des dossiers concernés…');previewBtn.disabled=true;
+    try{
+      const [count,sample]=await Promise.all([countOld(cutoff),sampleOld(cutoff)]);
+      previewState={months,cutoff,count};
+      if(!count){setStatus(`Aucun dossier de plus de ${months} mois à supprimer.`);return}
+      const names=sample.map(r=>r.clientName||r.clientId||'Client').join(', ');
+      setStatus(`${count} dossier${count>1?'s':''} de plus de ${months} mois. Exemples : ${names}${count>sample.length?'…':''}`);
+      runBtn.disabled=false;
+    }catch(e){console.error('Prévisualisation purge',e);setStatus('Impossible de vérifier la purge : '+(e.message||'erreur Firebase'))}
+    finally{previewBtn.disabled=false}
+  }
+  async function purge(){
+    if(!previewState?.count||!isSupport())return;
+    const {months,cutoff,count}=previewState;
+    if(!confirm(`SUPPRESSION DÉFINITIVE\n\n${count} dossier(s) de plus de ${months} mois seront supprimés de Firebase.\n\nContinuer ?`))return;
+    const typed=prompt('Dernière sécurité : tape PURGER pour confirmer la suppression définitive.','');
+    if(String(typed||'').trim().toUpperCase()!=='PURGER'){setStatus('Purge annulée.');return}
+    previewBtn.disabled=true;runBtn.disabled=true;ageSel.disabled=true;
+    let deleted=0;
+    try{
+      while(true){
+        const docs=await nextBatch(cutoff);
+        if(!docs.length)break;
+        setStatus(`Suppression en cours… ${deleted}/${count}`);
+        for(let i=0;i<docs.length;i+=10){
+          const chunk=docs.slice(i,i+10);
+          await Promise.all(chunk.map(d=>deleteDoc(d.name)));
+          deleted+=chunk.length;
+          setStatus(`Suppression en cours… ${deleted}/${count}`);
+        }
+        if(docs.length<50)break;
+      }
+      setStatus(`Purge terminée : ${deleted} dossier${deleted>1?'s':''} supprimé${deleted>1?'s':''}.`);
+      previewState=null;
+      setTimeout(()=>{try{reopenBtn?.click()}catch(e){}},600);
+    }catch(e){console.error('Purge checklists',e);setStatus(`Purge interrompue après ${deleted} suppression(s) : ${e.message||'erreur Firebase'}`)}
+    finally{previewBtn.disabled=false;ageSel.disabled=false;runBtn.disabled=true}
+  }
+
+  ageSel.addEventListener('change',()=>{previewState=null;runBtn.disabled=true;setStatus('')});
+  previewBtn.addEventListener('click',preview);
+  runBtn.addEventListener('click',purge);
+  firebase.auth().onAuthStateChanged(user=>{
+    const show=String(user?.email||'').trim().toLowerCase()===SUPPORT_EMAIL;
+    panel.classList.toggle('hidden',!show);
+    if(!show){previewState=null;runBtn.disabled=true;setStatus('')}
+  });
 })();
 </script>
 </body>

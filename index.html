@@ -1028,7 +1028,7 @@
         .saved-checklist-more button{min-width:220px}
         @media(max-width:680px){.saved-checklist-card{align-items:stretch;flex-direction:column}.saved-checklist-card button{width:100%}.saved-checklist-more button{width:100%}}
 
-        /* v2.72 : purge manuelle des très anciennes checklists, réservée à support */
+        /* v2.73 : purge manuelle des très anciennes checklists, réservée à support */
         .saved-checklist-purge{margin-top:18px;padding:14px;border:1px solid rgba(239,68,68,.38);border-radius:12px;background:rgba(127,29,29,.12)}
         .saved-checklist-purge.hidden{display:none !important}
         .saved-checklist-purge-title{font-weight:900;color:#fecaca;margin-bottom:6px}
@@ -1106,7 +1106,7 @@ document.addEventListener("DOMContentLoaded", () => {
   <button class="ghost btn-small" id="btnMemo" type="button">Mémo</button>
   <button class="ghost btn-small" id="btnInfoSup" type="button">Info sup</button>
   <button class="ghost btn-small" id="btnMode" type="button">Mode 1 par 1</button>
-  <div class="pill">v2.72</div>
+  <div class="pill">v2.73</div>
   <div class="pill auth-user hidden" id="authUserLabel"></div>
   <button class="ghost btn-small hidden" id="logoutBtn" type="button">Déconnexion</button>
 </div>
@@ -3420,9 +3420,9 @@ function handleGeneralQuestionAction(input){
     if (name === "info_tva_reduite") {
         syncTvaReducedLinkBox();
         if (value === "oui") {
-            alert("Renseigner le taux dans Extrabat");
+            window.cbatAlert("Renseigner le taux dans Extrabat", "TVA");
         } else if (value === "non") {
-            alert("Renseigner le taux dans Extrabat");
+            window.cbatAlert("Renseigner le taux dans Extrabat", "TVA");
         }
     }
 }
@@ -5322,7 +5322,7 @@ applyAlternatingRows();
     const choices = document.getElementById("savedClientChoices");
     const items = readIndex().slice().sort((a,b) => String(b.updatedAt||"").localeCompare(String(a.updatedAt||"")));
     if (!items.length) {
-      alert("Aucune checklist sauvegardée pour le moment.\n\nSaisis le nom du client : les réponses seront ensuite enregistrées automatiquement.");
+      window.cbatAlert("Aucune checklist sauvegardée pour le moment.\n\nSaisis le nom du client : les réponses seront ensuite enregistrées automatiquement.", "Sauvegarde");
       return;
     }
     if (!overlay || !choices) return;
@@ -5515,7 +5515,7 @@ applyAlternatingRows();
         setSaveStatus("Aucune sauvegarde pour ce nom · choisis un client enregistré", "warn");
         openSavedClientPicker();
       } else {
-        alert("Aucune checklist sauvegardée pour le moment.\n\nCe client sera sauvegardé automatiquement dès que tu commenceras à répondre.");
+        window.cbatAlert("Aucune checklist sauvegardée pour le moment.\n\nCe client sera sauvegardé automatiquement dès que tu commenceras à répondre.", "Sauvegarde");
       }
       return;
     }
@@ -5831,50 +5831,7 @@ document.addEventListener("change", (e) => {
     updateWizardNavState();
 });
 
-// v2.72 : rappel spécifique à la hotte intégrable dans une pop-up intégrée.
-(() => {
-  const btn = document.getElementById("hotteEvacAlertBtn");
-  const overlay = document.getElementById("hotteEvacOverlay");
-  const closeBtn = document.getElementById("hotteEvacClose");
-  if (!btn || !overlay || !closeBtn) return;
-
-  const open = () => {
-    overlay.classList.add("show");
-    overlay.setAttribute("aria-hidden", "false");
-    setTimeout(() => closeBtn.focus(), 0);
-  };
-  const close = () => {
-    overlay.classList.remove("show");
-    overlay.setAttribute("aria-hidden", "true");
-    btn.focus();
-  };
-
-  btn.addEventListener("click", (event) => {
-    event.preventDefault();
-    event.stopPropagation();
-    open();
-  });
-  closeBtn.addEventListener("click", close);
-  overlay.addEventListener("click", (event) => { if (event.target === overlay) close(); });
-  document.addEventListener("keydown", (event) => {
-    if (event.key === "Escape" && overlay.classList.contains("show")) close();
-  });
-})();
 </script>
-
-<div class="memo-overlay" id="hotteEvacOverlay" aria-hidden="true">
-  <div class="memo-modal" role="dialog" aria-modal="true" aria-labelledby="hotteEvacTitle" style="width:min(620px,96vw)">
-    <div class="memo-head">
-      <h2 id="hotteEvacTitle">⚠ Attention évacuation</h2>
-    </div>
-    <div style="padding:16px 18px;border:1px solid rgba(245,158,11,.45);background:rgba(245,158,11,.12);border-radius:14px;font-size:17px;line-height:1.5;font-weight:750;color:#fff7d6">
-      Si hotte recyclage, prévoir suffisamment d'espace pour l'évacuation de l'air.
-    </div>
-    <div class="memo-foot">
-      <button class="primary" id="hotteEvacClose" type="button">OK</button>
-    </div>
-  </div>
-</div>
 
 <div class="memo-overlay" id="savedChecklistOverlay" aria-hidden="true">
   <div class="memo-modal" role="dialog" aria-modal="true" aria-labelledby="savedChecklistTitle">
@@ -5915,6 +5872,79 @@ document.addEventListener("change", (e) => {
   </div>
 </div>
 
+
+<div class="memo-overlay" id="cbatDialogOverlay" aria-hidden="true">
+  <div class="memo-modal" role="dialog" aria-modal="true" aria-labelledby="cbatDialogTitle" style="width:min(620px,96vw)">
+    <div class="memo-head">
+      <h2 id="cbatDialogTitle">Information</h2>
+    </div>
+    <div id="cbatDialogMessage" style="padding:16px 18px;border:1px solid rgba(255,255,255,.14);background:rgba(255,255,255,.055);border-radius:14px;font-size:16px;line-height:1.5;color:var(--text);white-space:pre-line"></div>
+    <input id="cbatDialogInput" type="text" autocomplete="off" style="display:none;width:100%;margin-top:12px;border:1px solid rgba(255,255,255,.16);border-radius:12px;background:rgba(0,0,0,.18);color:var(--text);padding:11px 12px;font-size:15px;outline:none"/>
+    <div class="memo-foot">
+      <button class="ghost" id="cbatDialogCancel" type="button" style="display:none">Annuler</button>
+      <button class="primary" id="cbatDialogOk" type="button">OK</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// v2.73 : toutes les alertes/confirmations/saisies utilisent une fenêtre intégrée.
+(() => {
+  const overlay=document.getElementById('cbatDialogOverlay');
+  const title=document.getElementById('cbatDialogTitle');
+  const message=document.getElementById('cbatDialogMessage');
+  const input=document.getElementById('cbatDialogInput');
+  const ok=document.getElementById('cbatDialogOk');
+  const cancel=document.getElementById('cbatDialogCancel');
+  let resolveCurrent=null, mode='alert', lastFocus=null;
+
+  function finish(value){
+    if(!overlay.classList.contains('show')) return;
+    overlay.classList.remove('show');
+    overlay.setAttribute('aria-hidden','true');
+    const resolve=resolveCurrent; resolveCurrent=null;
+    if(lastFocus && typeof lastFocus.focus==='function') setTimeout(()=>lastFocus.focus(),0);
+    if(resolve) resolve(value);
+  }
+  function openDialog(opts={}){
+    if(resolveCurrent) finish(mode==='prompt'?null:false);
+    lastFocus=document.activeElement;
+    mode=opts.mode||'alert';
+    title.textContent=opts.title||'Information';
+    message.textContent=opts.message||'';
+    input.style.display=mode==='prompt'?'block':'none';
+    input.value=opts.value||'';
+    input.placeholder=opts.placeholder||'';
+    cancel.style.display=mode==='alert'?'none':'inline-flex';
+    cancel.textContent=opts.cancelText||'Annuler';
+    ok.textContent=opts.confirmText||'OK';
+    overlay.classList.add('show');
+    overlay.setAttribute('aria-hidden','false');
+    return new Promise(resolve=>{
+      resolveCurrent=resolve;
+      setTimeout(()=>{(mode==='prompt'?input:ok).focus(); if(mode==='prompt') input.select();},0);
+    });
+  }
+  ok.addEventListener('click',()=>finish(mode==='prompt'?input.value:true));
+  cancel.addEventListener('click',()=>finish(mode==='prompt'?null:false));
+  overlay.addEventListener('click',e=>{if(e.target===overlay) finish(mode==='prompt'?null:(mode==='confirm'?false:true));});
+  document.addEventListener('keydown',e=>{
+    if(!overlay.classList.contains('show')) return;
+    if(e.key==='Escape'){e.preventDefault();finish(mode==='prompt'?null:(mode==='confirm'?false:true));}
+    if(e.key==='Enter' && mode==='prompt' && document.activeElement===input){e.preventDefault();finish(input.value);}
+  });
+
+  window.cbatAlert=(msg,ttl='Information')=>openDialog({mode:'alert',message:String(msg||''),title:ttl,confirmText:'OK'});
+  window.cbatConfirm=(msg,ttl='Confirmation')=>openDialog({mode:'confirm',message:String(msg||''),title:ttl,confirmText:'Confirmer',cancelText:'Annuler'});
+  window.cbatPrompt=(msg,ttl='Saisie',placeholder='')=>openDialog({mode:'prompt',message:String(msg||''),title:ttl,placeholder,confirmText:'Valider',cancelText:'Annuler'});
+
+  // Rappel hotte intégrable : même fenêtre générique, donc aucun popup navigateur natif.
+  document.getElementById('hotteEvacAlertBtn')?.addEventListener('click',e=>{
+    e.preventDefault(); e.stopPropagation();
+    window.cbatAlert("Si hotte recyclage, prévoir suffisamment d'espace pour l'évacuation de l'air.", '⚠ Attention évacuation');
+  });
+})();
+</script>
 
 <script>
 // v2.70 : clients Extrabat (même source et mêmes filtres que le générateur de devis IKEA).
@@ -5990,7 +6020,7 @@ document.addEventListener("change", (e) => {
     if(!name) return;
     const previous=String(clientInput.value||'').trim();
     if(previous && norm(previous)!==norm(name)){
-      if(!confirm('Changer de client ? La checklist actuelle sera sauvegardée avant le changement.')) return;
+      if(!(await window.cbatConfirm('Changer de client ? La checklist actuelle sera sauvegardée avant le changement.', 'Changer de client'))) return;
       try{
         if(window.CBAT_CHECKLIST_CLOUD?.flushSave) await window.CBAT_CHECKLIST_CLOUD.flushSave("client-change");
         else { window.CBAT_CHECKLIST_STORAGE?.save?.(); await window.CBAT_CHECKLIST_CLOUD?.saveNow?.(); }
@@ -6227,9 +6257,9 @@ document.addEventListener("change", (e) => {
   }
   function closeOverlay(){overlay.classList.remove('show');overlay.setAttribute('aria-hidden','true')}
   async function openRecord(r){
-    let payload;try{payload=JSON.parse(r.payloadJson||'')}catch(e){alert('Cette sauvegarde est illisible.');return}
+    let payload;try{payload=JSON.parse(r.payloadJson||'')}catch(e){await window.cbatAlert('Cette sauvegarde est illisible.', 'Erreur de sauvegarde');return}
     const input=document.getElementById('clientIdentity');const previous=String(input?.value||'').trim();
-    if(previous&&norm(previous)!==norm(r.clientName||'')&&!confirm('Changer de client ? La checklist actuelle sera sauvegardée avant ouverture.'))return;
+    if(previous&&norm(previous)!==norm(r.clientName||'')&&!(await window.cbatConfirm('Changer de client ? La checklist actuelle sera sauvegardée avant ouverture.', 'Changer de client')))return;
     try{if(window.CBAT_CHECKLIST_CLOUD?.flushSave)await window.CBAT_CHECKLIST_CLOUD.flushSave('client-change')}catch(e){}
     window.pvmanSelectedClient={clientId:r.clientId||'',appointmentId:r.appointmentId||'',serviceId:r.serviceId||'',orderNo:r.orderNo||'',pvmanEmail:r.pvmanEmail||'',date:r.appointmentDate||'',time:r.appointmentTime||'',address:''};
     if(input){input.value=r.clientName||payload.client||'';input.dispatchEvent(new Event('input',{bubbles:true}))}
@@ -6238,9 +6268,9 @@ document.addEventListener("change", (e) => {
       const d=new Date(r.savedAt||payload.savedAt||Date.now());
       window.CBAT_CHECKLIST_STORAGE?.setStatus?.(`Reprise Firebase · ${d.toLocaleString('fr-FR')}`,'ok');
       closeOverlay();
-      // Une ancienne sauvegarde ouverte avec v2.72 est réenregistrée : elle reçoit ainsi l’index de recherche optimisé.
+      // Une ancienne sauvegarde ouverte avec v2.73 est réenregistrée : elle reçoit ainsi l’index de recherche optimisé.
       setTimeout(()=>window.CBAT_CHECKLIST_CLOUD?.scheduleSave?.(null,150),200);
-    }else alert('Impossible de restaurer cette checklist.');
+    }else await window.cbatAlert('Impossible de restaurer cette checklist.', 'Erreur de restauration');
   }
 
   btn.addEventListener('click',openOverlay);
@@ -6252,7 +6282,7 @@ document.addEventListener("change", (e) => {
 </script>
 
 <script>
-// v2.72 : purge manuelle sécurisée des anciennes checklists.
+// v2.73 : purge manuelle sécurisée des anciennes checklists.
 // Le bouton n'est visible que pour support@challengebat.fr.
 // IMPORTANT : les règles Firestore doivent aussi réserver DELETE à ce compte.
 (()=>{
@@ -6359,8 +6389,8 @@ document.addEventListener("change", (e) => {
   async function purge(){
     if(!previewState?.count||!isSupport())return;
     const {months,cutoff,count}=previewState;
-    if(!confirm(`SUPPRESSION DÉFINITIVE\n\n${count} dossier(s) de plus de ${months} mois seront supprimés de Firebase.\n\nContinuer ?`))return;
-    const typed=prompt('Dernière sécurité : tape PURGER pour confirmer la suppression définitive.','');
+    if(!(await window.cbatConfirm(`SUPPRESSION DÉFINITIVE\n\n${count} dossier(s) de plus de ${months} mois seront supprimés de Firebase.\n\nContinuer ?`, 'Suppression définitive')))return;
+    const typed=await window.cbatPrompt('Dernière sécurité : tape PURGER pour confirmer la suppression définitive.', 'Confirmation de purge', 'Tape PURGER');
     if(String(typed||'').trim().toUpperCase()!=='PURGER'){setStatus('Purge annulée.');return}
     previewBtn.disabled=true;runBtn.disabled=true;ageSel.disabled=true;
     let deleted=0;

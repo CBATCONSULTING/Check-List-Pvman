@@ -1015,6 +1015,8 @@
 
         /* v2.70 : ouverture des anciennes checklists sauvegardées Firebase */
         .saved-checklist-open-btn{background:rgba(37,99,235,.30);border:1px solid rgba(96,165,250,.55)}
+        .test-client-btn{background:rgba(124,58,237,.22);border:1px solid rgba(167,139,250,.55)}
+        .saved-checklist-test-badge{display:inline-flex;align-items:center;margin-right:7px;padding:2px 7px;border-radius:999px;background:rgba(124,58,237,.24);border:1px solid rgba(167,139,250,.52);color:#ddd6fe;font-size:10px;font-weight:900;letter-spacing:.04em;vertical-align:1px}
         .saved-checklist-search{width:100%;height:42px;border-radius:12px;border:1px solid rgba(255,255,255,.18);background:rgba(0,0,0,.20);color:var(--text);padding:0 12px;font-size:14px;outline:none}
         .saved-checklist-search:focus{border-color:#60a5fa;box-shadow:0 0 0 3px rgba(59,130,246,.20)}
         .saved-checklist-status{color:var(--muted);font-size:12px;margin:8px 0 2px}
@@ -1106,7 +1108,7 @@ document.addEventListener("DOMContentLoaded", () => {
   <button class="ghost btn-small" id="btnMemo" type="button">Mémo</button>
   <button class="ghost btn-small" id="btnInfoSup" type="button">Info sup</button>
   <button class="ghost btn-small" id="btnMode" type="button">Mode 1 par 1</button>
-  <div class="pill">v2.73</div>
+  <div class="pill">v2.74</div>
   <div class="pill auth-user hidden" id="authUserLabel"></div>
   <button class="ghost btn-small hidden" id="logoutBtn" type="button">Déconnexion</button>
 </div>
@@ -1123,6 +1125,7 @@ document.addEventListener("DOMContentLoaded", () => {
     <input id="pvSearch" type="text" autocomplete="off" placeholder="Nom, ville, référence…" aria-label="Rechercher un client" />
     <button class="ghost" id="pvLoad" type="button">Actualiser</button>
     <button class="ghost saved-checklist-open-btn" id="openSavedChecklistBtn" type="button">📂 Ouvrir une checklist</button>
+    <button class="ghost test-client-btn" id="newTestClientBtn" type="button">🧪 Client test / Exercice</button>
   </div>
   <div class="extrabat-client-status" id="pvStatus">Chargement des clients…</div>
   <div class="extrabat-client-results" id="pvResults"></div>
@@ -5386,7 +5389,7 @@ applyAlternatingRows();
 
   function snapshotChecklist(){
     return {
-      version: "2.71",
+      version: "2.74",
       client: cleanName(clientInput?.value),
       savedAt: new Date().toISOString(),
       wizardIndex: (typeof wizardIndex !== "undefined" ? wizardIndex : 0),
@@ -5636,7 +5639,7 @@ applyAlternatingRows();
     return String(v||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase().replace(/[^a-z0-9]+/g," ").trim();
   }
   function searchKeysFor(payload,r){
-    const raw=[payload?.client||"",r?.clientId||"",r?.orderNo||""].map(searchNorm).join(" ");
+    const raw=[payload?.client||"",r?.clientId||"",r?.orderNo||"",r?.testLabel||"",r?.createdByEmail||"",r?.recordType||""].map(searchNorm).join(" ");
     const words=raw.split(/\s+/).filter(Boolean);
     const out=new Set();
     for(const word of words){
@@ -5675,7 +5678,7 @@ applyAlternatingRows();
       const body = {
         fields: {
           schemaVersion: fieldInt(1),
-          formVersion: fieldString(payload.version || "2.71"),
+          formVersion: fieldString(payload.version || "2.74"),
           clientName: fieldString(payload.client || ""),
           clientId: fieldString(r.clientId || ""),
           appointmentId: fieldString(r.appointmentId || ""),
@@ -5688,6 +5691,12 @@ applyAlternatingRows();
           ownerEmail: fieldString(user.email || ""),
           savedAt: fieldString(payload.savedAt || new Date().toISOString()),
           completed: fieldBool(!!payload.finalButtonPressed),
+          recordType: fieldString(r.isTest || r.recordType==="test" ? "test" : "official"),
+          isTest: fieldBool(!!(r.isTest || r.recordType==="test")),
+          testId: fieldString(r.testId || ""),
+          testLabel: fieldString(r.testLabel || ""),
+          testCreatedAt: fieldString(r.testCreatedAt || ""),
+          createdByEmail: fieldString(r.createdByEmail || (r.isTest ? (user.email || "") : "")),
           clientNameSearch: fieldString(searchNorm(payload.client || "")),
           searchKeys: fieldArray(searchKeysFor(payload,r)),
           payloadJson: fieldString(JSON.stringify(payload))
@@ -5839,7 +5848,7 @@ document.addEventListener("change", (e) => {
       <h2 id="savedChecklistTitle">Mes checklists sauvegardées</h2>
       <button class="memo-close" id="closeSavedChecklistOverlay" type="button">Fermer</button>
     </div>
-    <input class="saved-checklist-search" id="savedChecklistSearch" type="search" placeholder="Rechercher un client…" autocomplete="off"/>
+    <input class="saved-checklist-search" id="savedChecklistSearch" type="search" placeholder="Rechercher un client ou un exercice…" autocomplete="off"/>
     <div class="saved-checklist-status" id="savedChecklistStatus">Chargement…</div>
     <div class="saved-checklist-list" id="savedChecklistList"></div>
     <div class="saved-checklist-more" id="savedChecklistMoreWrap">
@@ -5858,6 +5867,19 @@ document.addEventListener("change", (e) => {
         <button class="purge-danger" id="savedChecklistPurgeRun" type="button" disabled>Supprimer ces dossiers</button>
       </div>
       <div class="saved-checklist-purge-status" id="savedChecklistPurgeStatus"></div>
+      <div style="height:1px;background:rgba(255,255,255,.10);margin:14px 0"></div>
+      <div class="saved-checklist-purge-title" style="color:#ddd6fe">🧪 Purge des exercices — Support uniquement</div>
+      <div class="saved-checklist-purge-help">Cette purge ne touche jamais aux clients Extrabat officiels. Elle supprime uniquement les dossiers marqués TEST / EXERCICE.</div>
+      <div class="saved-checklist-purge-controls">
+        <select id="savedChecklistTestPurgeAge" aria-label="Ancienneté minimale des exercices à purger">
+          <option value="6">Exercices de plus de 6 mois</option>
+          <option value="12" selected>Exercices de plus de 12 mois</option>
+          <option value="24">Exercices de plus de 24 mois</option>
+        </select>
+        <button class="ghost" id="savedChecklistTestPurgePreview" type="button">Vérifier les exercices</button>
+        <button class="purge-danger" id="savedChecklistTestPurgeRun" type="button" disabled>Supprimer ces exercices</button>
+      </div>
+      <div class="saved-checklist-purge-status" id="savedChecklistTestPurgeStatus"></div>
     </div>
   </div>
 </div>
@@ -5955,6 +5977,7 @@ document.addEventListener("change", (e) => {
   const results=document.getElementById('pvResults');
   const statusEl=document.getElementById('pvStatus');
   const clientInput=document.getElementById('clientIdentity');
+  const testBtn=document.getElementById('newTestClientBtn');
   if(!period||!search||!loadBtn||!results||!statusEl||!clientInput||typeof firebase==='undefined') return;
 
   let payload=null;
@@ -6040,6 +6063,66 @@ document.addEventListener("change", (e) => {
     results.replaceChildren();
   }
 
+
+  async function createTestClient(){
+    const user=firebase.auth().currentUser;
+    if(!user){ await window.cbatAlert('Connecte-toi avant de créer un exercice.', 'Client test / Exercice'); return; }
+    const labelRaw=await window.cbatPrompt('Donne un nom à cet exercice.\n\nExemple : Cuisine entraînement 1', '🧪 Nouveau client test / Exercice', 'Nom de l’exercice');
+    const label=String(labelRaw||'').trim().replace(/\s+/g,' ');
+    if(!label) return;
+
+    const previous=String(clientInput.value||'').trim();
+    if(previous){
+      if(!(await window.cbatConfirm('Créer un nouvel exercice ?\n\nLa checklist actuelle sera sauvegardée avant de passer au client test.', 'Nouveau client test'))) return;
+      try{
+        if(window.CBAT_CHECKLIST_CLOUD?.flushSave) await window.CBAT_CHECKLIST_CLOUD.flushSave('client-change');
+        else { window.CBAT_CHECKLIST_STORAGE?.save?.(); await window.CBAT_CHECKLIST_CLOUD?.saveNow?.(); }
+      }catch(e){ console.warn('Sauvegarde avant exercice',e); }
+    }
+
+    const now=new Date();
+    const stamp=now.toISOString().replace(/[-:.TZ]/g,'').slice(0,14);
+    const safe=v=>String(v||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-zA-Z0-9]+/g,'_').replace(/^_+|_+$/g,'').slice(0,50);
+    const owner=safe(user.uid||user.email||'user')||'user';
+    const testId=`TEST_${owner}_${stamp}`;
+    const when=now.toLocaleString('fr-FR',{dateStyle:'short',timeStyle:'short'});
+    const displayName=`TEST — ${label} — ${when}`;
+
+    window.pvmanSelectedClient={
+      clientId:testId,
+      appointmentId:`EXERCICE_${stamp}`,
+      serviceId:'TEST_EXERCICE',
+      orderNo:'',
+      pvmanEmail:user.email||'',
+      date:day(now),
+      time:now.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'}),
+      address:'',
+      isTest:true,
+      recordType:'test',
+      testId,
+      testLabel:label,
+      testCreatedAt:now.toISOString(),
+      createdByEmail:user.email||''
+    };
+
+    clientInput.value=displayName;
+    clientInput.dispatchEvent(new Event('input',{bubbles:true}));
+    clearQuestionnaireForNewClient();
+    clientInput.dispatchEvent(new Event('change',{bubbles:true}));
+    results.replaceChildren();
+    setStatus(`🧪 Exercice créé : ${label} · sauvegarde Firebase automatique`);
+    window.CBAT_CHECKLIST_STORAGE?.setStatus?.('🧪 Exercice · enregistrement Firebase…','warn');
+
+    try{
+      window.CBAT_CHECKLIST_STORAGE?.save?.();
+      const ok=await window.CBAT_CHECKLIST_CLOUD?.saveNow?.();
+      if(ok) window.CBAT_CHECKLIST_STORAGE?.setStatus?.('🧪 Exercice Firebase enregistré','ok');
+    }catch(e){
+      console.error('Création exercice Firebase',e);
+      window.CBAT_CHECKLIST_STORAGE?.setStatus?.('Exercice local OK · Firebase non enregistré','warn');
+    }
+  }
+
   function render(){
     results.replaceChildren();
     if(!payload) return;
@@ -6089,6 +6172,7 @@ document.addEventListener("change", (e) => {
   period.addEventListener('change',render);
   search.addEventListener('input',render);
   loadBtn.addEventListener('click',load);
+  testBtn?.addEventListener('click',createTestClient);
   firebase.auth().onAuthStateChanged(user=>{
     sessionEmail=(user?.email||'').toLowerCase();
     payload=null; results.replaceChildren();
@@ -6137,7 +6221,7 @@ document.addEventListener("change", (e) => {
     return null;
   }
   function formatDate(value){const d=new Date(value||'');return Number.isFinite(d.getTime())?d.toLocaleString('fr-FR'):'date inconnue'}
-  function haystack(r){return norm([r.clientName,r.clientId,r.ownerEmail,r.orderNo,r.pvmanEmail,r.appointmentDate].join(' '))}
+  function haystack(r){return norm([r.clientName,r.clientId,r.ownerEmail,r.orderNo,r.pvmanEmail,r.appointmentDate,r.testLabel,r.recordType].join(' '))}
   function firstSearchKey(q){return norm(q).split(/\s+/).find(x=>x.length>=2)||''}
   function docRecord(doc){
     if(!doc?.fields) return null;
@@ -6161,11 +6245,17 @@ document.addEventListener("change", (e) => {
     for(const r of rows){
       const card=document.createElement('div');card.className='saved-checklist-card';
       const main=document.createElement('div');main.className='saved-checklist-card-main';
-      const title=document.createElement('div');title.className='saved-checklist-card-title';title.textContent=r.clientName||('Client '+(r.clientId||''));
+      const title=document.createElement('div');title.className='saved-checklist-card-title';
+      const isTest=!!(r.isTest||r.recordType==='test');
+      if(isTest){
+        const badge=document.createElement('span');badge.className='saved-checklist-test-badge';badge.textContent='TEST / EXERCICE';title.appendChild(badge);
+        title.appendChild(document.createTextNode(r.testLabel||r.clientName||'Exercice'));
+      }else title.textContent=r.clientName||('Client '+(r.clientId||''));
       const info=document.createElement('div');info.className='saved-checklist-card-info';
       const bits=[];
-      if(r.appointmentDate)bits.push('RDV '+String(r.appointmentDate).split('-').reverse().join('/'));
-      if(r.orderNo)bits.push('OS '+r.orderNo);
+      if(!isTest && r.appointmentDate)bits.push('RDV '+String(r.appointmentDate).split('-').reverse().join('/'));
+      if(!isTest && r.orderNo)bits.push('OS '+r.orderNo);
+      if(isTest && r.testCreatedAt)bits.push('Créé '+formatDate(r.testCreatedAt));
       if(r.ownerEmail)bits.push('Enregistré par '+r.ownerEmail);
       bits.push('Sauvegarde '+formatDate(r.savedAt));
       info.textContent=bits.filter(Boolean).join(' · ');
@@ -6261,14 +6351,14 @@ document.addEventListener("change", (e) => {
     const input=document.getElementById('clientIdentity');const previous=String(input?.value||'').trim();
     if(previous&&norm(previous)!==norm(r.clientName||'')&&!(await window.cbatConfirm('Changer de client ? La checklist actuelle sera sauvegardée avant ouverture.', 'Changer de client')))return;
     try{if(window.CBAT_CHECKLIST_CLOUD?.flushSave)await window.CBAT_CHECKLIST_CLOUD.flushSave('client-change')}catch(e){}
-    window.pvmanSelectedClient={clientId:r.clientId||'',appointmentId:r.appointmentId||'',serviceId:r.serviceId||'',orderNo:r.orderNo||'',pvmanEmail:r.pvmanEmail||'',date:r.appointmentDate||'',time:r.appointmentTime||'',address:''};
+    window.pvmanSelectedClient={clientId:r.clientId||'',appointmentId:r.appointmentId||'',serviceId:r.serviceId||'',orderNo:r.orderNo||'',pvmanEmail:r.pvmanEmail||'',date:r.appointmentDate||'',time:r.appointmentTime||'',address:'',isTest:!!(r.isTest||r.recordType==='test'),recordType:r.recordType||((r.isTest)?'test':'official'),testId:r.testId||'',testLabel:r.testLabel||'',testCreatedAt:r.testCreatedAt||'',createdByEmail:r.createdByEmail||''};
     if(input){input.value=r.clientName||payload.client||'';input.dispatchEvent(new Event('input',{bubbles:true}))}
     const ok=!!window.CBAT_CHECKLIST_STORAGE?.restorePayload?.(payload,(r.clientName||payload.client||''));
     if(ok){
       const d=new Date(r.savedAt||payload.savedAt||Date.now());
-      window.CBAT_CHECKLIST_STORAGE?.setStatus?.(`Reprise Firebase · ${d.toLocaleString('fr-FR')}`,'ok');
+      window.CBAT_CHECKLIST_STORAGE?.setStatus?.(`${(r.isTest||r.recordType==='test')?'🧪 Exercice repris':'Reprise Firebase'} · ${d.toLocaleString('fr-FR')}`,'ok');
       closeOverlay();
-      // Une ancienne sauvegarde ouverte avec v2.73 est réenregistrée : elle reçoit ainsi l’index de recherche optimisé.
+      // Une ancienne sauvegarde ouverte avec v2.74 est réenregistrée : elle reçoit ainsi l’index de recherche optimisé.
       setTimeout(()=>window.CBAT_CHECKLIST_CLOUD?.scheduleSave?.(null,150),200);
     }else await window.cbatAlert('Impossible de restaurer cette checklist.', 'Erreur de restauration');
   }
@@ -6291,12 +6381,18 @@ document.addEventListener("change", (e) => {
   const previewBtn=document.getElementById('savedChecklistPurgePreview');
   const runBtn=document.getElementById('savedChecklistPurgeRun');
   const statusEl=document.getElementById('savedChecklistPurgeStatus');
+  const testAgeSel=document.getElementById('savedChecklistTestPurgeAge');
+  const testPreviewBtn=document.getElementById('savedChecklistTestPurgePreview');
+  const testRunBtn=document.getElementById('savedChecklistTestPurgeRun');
+  const testStatusEl=document.getElementById('savedChecklistTestPurgeStatus');
   const reopenBtn=document.getElementById('openSavedChecklistBtn');
-  if(!panel||!ageSel||!previewBtn||!runBtn||!statusEl||typeof firebase==='undefined') return;
+  if(!panel||!ageSel||!previewBtn||!runBtn||!statusEl||!testAgeSel||!testPreviewBtn||!testRunBtn||!testStatusEl||typeof firebase==='undefined') return;
 
   const SUPPORT_EMAIL='support@challengebat.fr';
   let previewState=null;
+  let testPreviewState=null;
   const setStatus=t=>{statusEl.textContent=t||''};
+  const setTestStatus=t=>{testStatusEl.textContent=t||''};
   const currentUser=()=>firebase.auth().currentUser;
   const isSupport=()=>String(currentUser()?.email||'').trim().toLowerCase()===SUPPORT_EMAIL;
   const cutoffIso=months=>{const d=new Date();d.setUTCMonth(d.getUTCMonth()-Number(months||60));return d.toISOString()};
@@ -6371,6 +6467,56 @@ document.addEventListener("change", (e) => {
     return true;
   }
 
+
+  async function allTestRecords(){
+    const body=await authFetch('documents:runQuery',{
+      method:'POST',
+      body:JSON.stringify({structuredQuery:{
+        from:[{collectionId:'pvman_checklists'}],
+        where:{fieldFilter:{field:{fieldPath:'recordType'},op:'EQUAL',value:{stringValue:'test'}}},
+        limit:5000
+      }})
+    });
+    return (Array.isArray(body)?body:[]).map(x=>rowFromDoc(x.document)).filter(Boolean);
+  }
+  async function previewTests(){
+    testPreviewState=null;testRunBtn.disabled=true;
+    if(!isSupport()){setTestStatus('Purge réservée à support@challengebat.fr.');return}
+    const months=Number(testAgeSel.value||12),cutoff=cutoffIso(months);
+    setTestStatus('Vérification des exercices concernés…');testPreviewBtn.disabled=true;
+    try{
+      const all=await allTestRecords();
+      const rows=all.filter(r=>(Date.parse(r.savedAt||0)||0)<=Date.parse(cutoff)).sort((a,b)=>(Date.parse(a.savedAt||0)||0)-(Date.parse(b.savedAt||0)||0));
+      testPreviewState={months,cutoff,rows};
+      if(!rows.length){setTestStatus(`Aucun exercice de plus de ${months} mois à supprimer.`);return}
+      const sample=rows.slice(0,8).map(r=>r.testLabel||r.clientName||'Exercice').join(', ');
+      setTestStatus(`${rows.length} exercice${rows.length>1?'s':''} de plus de ${months} mois. Exemples : ${sample}${rows.length>8?'…':''}`);
+      testRunBtn.disabled=false;
+    }catch(e){console.error('Prévisualisation purge exercices',e);setTestStatus('Impossible de vérifier les exercices : '+(e.message||'erreur Firebase'))}
+    finally{testPreviewBtn.disabled=false}
+  }
+  async function purgeTests(){
+    if(!testPreviewState?.rows?.length||!isSupport())return;
+    const {months,rows}=testPreviewState;
+    if(!(await window.cbatConfirm(`SUPPRESSION DES EXERCICES UNIQUEMENT\n\n${rows.length} exercice(s) de plus de ${months} mois seront supprimés.\n\nLes dossiers clients Extrabat ne seront pas touchés.`, 'Purge des exercices')))return;
+    const typed=await window.cbatPrompt('Dernière sécurité : tape EXERCICES pour confirmer.', 'Confirmation de purge', 'Tape EXERCICES');
+    if(String(typed||'').trim().toUpperCase()!=='EXERCICES'){setTestStatus('Purge des exercices annulée.');return}
+    testPreviewBtn.disabled=true;testRunBtn.disabled=true;testAgeSel.disabled=true;
+    let deleted=0;
+    try{
+      for(let i=0;i<rows.length;i+=10){
+        const chunk=rows.slice(i,i+10);
+        await Promise.all(chunk.map(r=>deleteDoc(r._name)));
+        deleted+=chunk.length;
+        setTestStatus(`Suppression des exercices… ${deleted}/${rows.length}`);
+      }
+      setTestStatus(`Purge terminée : ${deleted} exercice${deleted>1?'s':''} supprimé${deleted>1?'s':''}.`);
+      testPreviewState=null;
+      setTimeout(()=>{try{reopenBtn?.click()}catch(e){}},600);
+    }catch(e){console.error('Purge exercices',e);setTestStatus(`Purge interrompue après ${deleted} suppression(s) : ${e.message||'erreur Firebase'}`)}
+    finally{testPreviewBtn.disabled=false;testAgeSel.disabled=false;testRunBtn.disabled=true}
+  }
+
   async function preview(){
     previewState=null;runBtn.disabled=true;
     if(!isSupport()){setStatus('Purge réservée à support@challengebat.fr.');return}
@@ -6417,10 +6563,13 @@ document.addEventListener("change", (e) => {
   ageSel.addEventListener('change',()=>{previewState=null;runBtn.disabled=true;setStatus('')});
   previewBtn.addEventListener('click',preview);
   runBtn.addEventListener('click',purge);
+  testAgeSel.addEventListener('change',()=>{testPreviewState=null;testRunBtn.disabled=true;setTestStatus('')});
+  testPreviewBtn.addEventListener('click',previewTests);
+  testRunBtn.addEventListener('click',purgeTests);
   firebase.auth().onAuthStateChanged(user=>{
     const show=String(user?.email||'').trim().toLowerCase()===SUPPORT_EMAIL;
     panel.classList.toggle('hidden',!show);
-    if(!show){previewState=null;runBtn.disabled=true;setStatus('')}
+    if(!show){previewState=null;testPreviewState=null;runBtn.disabled=true;testRunBtn.disabled=true;setStatus('');setTestStatus('')}
   });
 })();
 </script>
